@@ -1,18 +1,21 @@
 
 import React, { useState } from 'react';
 import LockScreen from './components/LockScreen';
-import ValentineContent from './components/ValentineContent';
 import DecoyScreen from './components/DecoyScreen';
 import FloatingHearts from './components/FloatingHearts';
+import AdminDashboard from './components/AdminDashboard';
+import BlogSystem from './components/BlogSystem';
 import { AppState } from './types';
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.LOCKED);
+  const [userId, setUserId] = useState<string>('');
 
-  const handleUnlock = () => {
+  const handleUnlock = (id: string, isAdmin: boolean) => {
+    setUserId(id);
     setAppState(AppState.UNLOCKING);
     setTimeout(() => {
-      setAppState(AppState.UNLOCKED);
+      setAppState(isAdmin ? AppState.ADMIN_DASHBOARD : AppState.UNLOCKED);
     }, 800);
   };
 
@@ -40,6 +43,12 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {appState === AppState.ADMIN_DASHBOARD && (
+        <div className="animate-in fade-in duration-500">
+          <AdminDashboard onBack={handleBackToLock} />
+        </div>
+      )}
+
       {appState === AppState.UNLOCKING && (
         <div className="min-h-screen flex items-center justify-center bg-rose-50">
           <div className="text-center space-y-4">
@@ -50,8 +59,8 @@ const App: React.FC = () => {
       )}
 
       {appState === AppState.UNLOCKED && (
-        <div className="animate-in slide-in-from-bottom duration-1000 ease-out fill-mode-forwards">
-          <ValentineContent />
+        <div className="animate-in slide-in-from-bottom duration-1000 ease-out fill-mode-forwards pt-20">
+          <BlogSystem userId={userId} onBack={handleBackToLock} />
         </div>
       )}
 

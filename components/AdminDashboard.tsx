@@ -1,0 +1,172 @@
+
+import React, { useState, useEffect } from 'react';
+import { subscribeToPosts, addReply, isFirebaseConfigured, deletePost } from '../services/firebase';
+import { Post } from '../types';
+import { Shield, Reply as ReplyIcon, Send, Heart, ArrowLeft, AlertCircle, Trash2 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+
+interface AdminDashboardProps {
+  onBack: () => void;
+}
+
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
+  const [isSubmitting, setIsSubmitting] = useState<{ [key: string]: boolean }>({});
+
+  useEffect(() => {
+    if (!isFirebaseConfigured) return;
+    const unsubscribe = subscribeToPosts(setPosts);
+    return () => unsubscribe();
+  }, []);
+
+  const handleReply = async (postId: string) => {
+    const content = replyText[postId];
+    if (!content?.trim()) return;
+
+    if (!isFirebaseConfigured) {
+      alert('Firebase কনফিগারেশন করা নেই।');
+      return;
+    }
+
+    setIsSubmitting(prev => ({ ...prev, [postId]: true }));
+    try {
+      await addReply(postId, content, true);
+      setReplyText(prev => ({ ...prev, [postId]: '' }));
+    } catch (error) {
+      alert('রিপ্লাই দিতে সমস্যা হয়েছে।');
+    } finally {
+      setIsSubmitting(prev => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  const handleDelete = async (postId: string) => {
+    console.log("Attempting to delete post:", postId);
+    if (window.confirm('তুমি কি নিশ্চিত যে তুমি এই পোস্টটি ডিলিট করতে চাও?')) {
+      try {
+        await deletePost(postId);
+        console.log("Post deleted successfully:", postId);
+      } catch (error) {
+        console.error("Failed to delete post:", error);
+        alert('পোস্ট ডিলিট করতে সমস্যা হয়েছে।');
+      }
+    }
+  };
+
+  if (!isFirebaseConfigured) {
+    return (
+      <div className="min-h-screen bg-rose-50 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 text-center shadow-xl border border-rose-100 space-y-6">
+          <AlertCircle className="w-16 h-16 text-rose-500 mx-auto" />
+          <h2 className="text-2xl font-bold text-gray-800">অ্যাডমিন প্যানেল নিষ্ক্রিয়</h2>
+          <p className="text-gray-600">
+            Firebase কনফিগারেশন সম্পন্ন না হওয়া পর্যন্ত অ্যাডমিন প্যানেল ব্যবহার করা যাবে না।
+          </p>
+          <button 
+            onClick={onBack}
+            className="w-full bg-rose-500 text-white py-3 rounded-xl font-bold hover:bg-rose-600 transition-colors"
+          >
+            ফিরে যাও
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-rose-50 p-6 pt-24">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <button 
+            onClick={onBack}
+            className="flex items-center gap-2 text-rose-600 hover:text-rose-700 font-medium transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            ফিরে যাও
+          </button>
+          <div className="flex items-center gap-2 bg-rose-100 px-4 py-2 rounded-full text-rose-700 font-bold">
+            <Shield className="w-5 h-5" />
+            Admin Panel
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          {posts.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-rose-100">
+              <p className="text-gray-400 italic">কোনো পোস্ট পাওয়া যায়নি...</p>
+            </div>
+          ) : (
+            posts.map((post) => (
+              <div key={post.id} className="bg-white rounded-3xl shadow-xl p-6 border border-rose-100 overflow-hidden relative">
+                <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
+                
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-bold text-gray-800">User: {post.userId}</h3>
+                    <p className="text-xs text-gray-400">{formatDistanceToNow(post.createdAt)} ago</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(post.id);
+                      }}
+                      className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all p-2 rounded-lg group"
+                      title="Delete Post"
+                    >
+                      <Trash2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    </button>
+                    <Heart className="w-5 h-5 text-rose-200" />
+                  </div>
+                </div>
+
+                <p className="text-gray-700 text-lg mb-6 leading-relaxed bg-rose-50/30 p-4 rounded-2xl">
+                  {post.content}
+                </p>
+
+                {/* Replies Section */}
+                {post.replies && post.replies.length > 0 && (
+                  <div className="mb-6 space-y-3">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Replies</h4>
+                    {post.replies.map((reply) => (
+                      <div key={reply.id} className={`p-3 rounded-2xl text-sm ${reply.isAdmin ? 'bg-rose-100/50 ml-6' : 'bg-gray-50'}`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`font-bold ${reply.isAdmin ? 'text-rose-600' : 'text-gray-600'}`}>
+                            {reply.isAdmin ? 'Admin' : 'User'}
+                          </span>
+                          <span className="text-[10px] text-gray-400">{formatDistanceToNow(reply.createdAt)} ago</span>
+                        </div>
+                        <p className="text-gray-700">{reply.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Reply Form */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={replyText[post.id] || ''}
+                    onChange={(e) => setReplyText(prev => ({ ...prev, [post.id]: e.target.value }))}
+                    placeholder="রিপ্লাই লেখো..."
+                    className="flex-1 px-4 py-2 rounded-xl border border-rose-100 focus:border-rose-400 outline-none text-sm transition-all"
+                    onKeyPress={(e) => e.key === 'Enter' && handleReply(post.id)}
+                  />
+                  <button
+                    onClick={() => handleReply(post.id)}
+                    disabled={isSubmitting[post.id] || !replyText[post.id]?.trim()}
+                    className="bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white p-2 rounded-xl transition-all"
+                  >
+                    <Send className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminDashboard;

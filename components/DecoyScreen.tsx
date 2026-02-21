@@ -11,7 +11,7 @@ const DecoyScreen: React.FC<DecoyScreenProps> = ({ onBack }) => {
       <div className="bg-white p-12 rounded-3xl shadow-2xl max-w-lg w-full border border-gray-200 animate-fade-in">
         <div className="mb-8 text-6xl">⛔</div>
         <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-6 font-serif leading-tight">
-          আপনি সংগিতা নন
+          আপনি প্রিয়জন নন
         </h1>
         <p className="text-xl text-gray-600 mb-10 leading-relaxed italic">
           যার জন্য মেসেজ লেখা হয়েছে সে ঠিক ই দেখে নিবে...<br/>

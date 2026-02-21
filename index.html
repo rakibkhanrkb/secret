@@ -4,33 +4,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Secret Valentine</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Define customFetch to avoid overwrite issues and provide logging
+      const originalFetch = window.fetch.bind(window);
+      window.customFetch = (...args) => {
+        console.log("Fetching:", args);
+        return originalFetch(...args);
+      };
+
+      // Try to protect window.fetch from being overwritten by scripts that might cause the TypeError
+      try {
+        Object.defineProperty(window, 'fetch', {
+          configurable: false,
+          enumerable: true,
+          get: () => window.customFetch,
+          set: (v) => { 
+            console.warn('Attempted to overwrite window.fetch. Using customFetch instead.');
+          }
+        });
+      } catch (e) {
+        console.error('Note: window.fetch is read-only in this environment. Overwrite attempts may fail.');
+      }
+    </script>
+    <title>Secret Message</title>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #fff1f2;
-            overflow-x: hidden;
-        }
-        .font-cursive {
-            font-family: 'Dancing+Script', cursive;
-        }
-        .font-serif {
-            font-family: 'Playfair Display', serif;
-        }
-    </style>
-<script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
+    <link rel="stylesheet" href="/index.css">
 </head>
 <body>
     <div id="root"></div>
