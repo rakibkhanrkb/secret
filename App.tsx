@@ -5,6 +5,7 @@ import DecoyScreen from './components/DecoyScreen';
 import FloatingHearts from './components/FloatingHearts';
 import AdminDashboard from './components/AdminDashboard';
 import BlogSystem from './components/BlogSystem';
+import RegistrationForm from './components/RegistrationForm';
 import { AppState } from './types';
 
 const App: React.FC = () => {
@@ -27,13 +28,23 @@ const App: React.FC = () => {
     setAppState(AppState.LOCKED);
   };
 
+  const handleGoToRegistration = () => {
+    setAppState(AppState.REGISTRATION);
+  };
+
   return (
     <div className="relative min-h-screen transition-all duration-1000">
       <FloatingHearts />
       
       {appState === AppState.LOCKED && (
         <div className="animate-in fade-in duration-500">
-          <LockScreen onUnlock={handleUnlock} onDecoy={handleDecoyRejection} />
+          <LockScreen onUnlock={handleUnlock} onDecoy={handleDecoyRejection} onRegister={handleGoToRegistration} />
+        </div>
+      )}
+
+      {appState === AppState.REGISTRATION && (
+        <div className="animate-in fade-in duration-500">
+          <RegistrationForm onBack={handleBackToLock} />
         </div>
       )}
 

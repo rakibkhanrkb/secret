@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { subscribeToPosts, addReply, isFirebaseConfigured, deletePost } from '../services/firebase';
-import { Post } from '../types';
-import { Shield, Reply as ReplyIcon, Send, Heart, ArrowLeft, AlertCircle, Trash2 } from 'lucide-react';
+import { subscribeToPosts, addReply, isFirebaseConfigured, deletePost, subscribeToRegistrationRequests, assignUserIdToRequest } from '../services/firebase';
+import { Post, RegistrationRequest } from '../types';
+import { Shield, Reply as ReplyIcon, Send, Heart, ArrowLeft, AlertCircle, Trash2, Users, MessageSquare, Search, UserPlus, Check, Phone, Mail } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface AdminDashboardProps {
@@ -11,13 +11,21 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [requests, setRequests] = useState<RegistrationRequest[]>([]);
+  const [activeTab, setActiveTab] = useState<'posts' | 'requests'>('posts');
+  const [searchQuery, setSearchQuery] = useState('');
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState<{ [key: string]: boolean }>({});
+  const [assigningUserId, setAssigningUserId] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     if (!isFirebaseConfigured) return;
-    const unsubscribe = subscribeToPosts(setPosts);
-    return () => unsubscribe();
+    const unsubscribePosts = subscribeToPosts(setPosts);
+    const unsubscribeRequests = subscribeToRegistrationRequests(setRequests);
+    return () => {
+      unsubscribePosts();
+      unsubscribeRequests();
+    };
   }, []);
 
   const handleReply = async (postId: string) => {
@@ -52,6 +60,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       }
     }
   };
+
+  const handleAssignId = async (requestId: string) => {
+    const userId = assigningUserId[requestId];
+    if (!userId?.trim()) return;
+
+    try {
+      await assignUserIdToRequest(requestId, userId);
+      setAssigningUserId(prev => ({ ...prev, [requestId]: '' }));
+      alert('ইউজার আইডি সফলভাবে এসাইন করা হয়েছে!');
+    } catch (error) {
+      alert('আইডি এসাইন করতে সমস্যা হয়েছে।');
+    }
+  };
+
+  const filteredRequests = requests.filter(req => 
+    req.mobile.includes(searchQuery) || req.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (!isFirebaseConfigured) {
     return (
@@ -90,78 +115,187 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-4 mb-8 bg-white p-2 rounded-2xl shadow-sm border border-rose-100">
+          <button
+            onClick={() => setActiveTab('posts')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${
+              activeTab === 'posts' ? 'bg-rose-500 text-white shadow-lg shadow-rose-200' : 'text-gray-500 hover:bg-rose-50'
+            }`}
+          >
+            <MessageSquare className="w-5 h-5" />
+            পোস্টসমূহ
+          </button>
+          <button
+            onClick={() => setActiveTab('requests')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${
+              activeTab === 'requests' ? 'bg-rose-500 text-white shadow-lg shadow-rose-200' : 'text-gray-500 hover:bg-rose-50'
+            }`}
+          >
+            <Users className="w-5 h-5" />
+            রেজিস্ট্রেশন রিকোয়েস্ট
+            {requests.filter(r => r.status === 'pending').length > 0 && (
+              <span className="bg-white text-rose-500 text-[10px] px-2 py-0.5 rounded-full">
+                {requests.filter(r => r.status === 'pending').length}
+              </span>
+            )}
+          </button>
+        </div>
+
         <div className="space-y-8">
-          {posts.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-rose-100">
-              <p className="text-gray-400 italic">কোনো পোস্ট পাওয়া যায়নি...</p>
-            </div>
-          ) : (
-            posts.map((post) => (
-              <div key={post.id} className="bg-white rounded-3xl shadow-xl p-6 border border-rose-100 overflow-hidden relative">
-                <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
-                
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-bold text-gray-800">User: {post.userId}</h3>
-                    <p className="text-xs text-gray-400">{formatDistanceToNow(post.createdAt)} ago</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(post.id);
-                      }}
-                      className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all p-2 rounded-lg group"
-                      title="Delete Post"
-                    >
-                      <Trash2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                    </button>
-                    <Heart className="w-5 h-5 text-rose-200" />
-                  </div>
-                </div>
-
-                <p className="text-gray-700 text-lg mb-6 leading-relaxed bg-rose-50/30 p-4 rounded-2xl">
-                  {post.content}
-                </p>
-
-                {/* Replies Section */}
-                {post.replies && post.replies.length > 0 && (
-                  <div className="mb-6 space-y-3">
-                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Replies</h4>
-                    {post.replies.map((reply) => (
-                      <div key={reply.id} className={`p-3 rounded-2xl text-sm ${reply.isAdmin ? 'bg-rose-100/50 ml-6' : 'bg-gray-50'}`}>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`font-bold ${reply.isAdmin ? 'text-rose-600' : 'text-gray-600'}`}>
-                            {reply.isAdmin ? 'Admin' : 'User'}
-                          </span>
-                          <span className="text-[10px] text-gray-400">{formatDistanceToNow(reply.createdAt)} ago</span>
-                        </div>
-                        <p className="text-gray-700">{reply.content}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Reply Form */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={replyText[post.id] || ''}
-                    onChange={(e) => setReplyText(prev => ({ ...prev, [post.id]: e.target.value }))}
-                    placeholder="রিপ্লাই লেখো..."
-                    className="flex-1 px-4 py-2 rounded-xl border border-rose-100 focus:border-rose-400 outline-none text-sm transition-all"
-                    onKeyPress={(e) => e.key === 'Enter' && handleReply(post.id)}
-                  />
-                  <button
-                    onClick={() => handleReply(post.id)}
-                    disabled={isSubmitting[post.id] || !replyText[post.id]?.trim()}
-                    className="bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white p-2 rounded-xl transition-all"
-                  >
-                    <Send className="w-5 h-5" />
-                  </button>
-                </div>
+          {activeTab === 'posts' ? (
+            posts.length === 0 ? (
+              <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-rose-100">
+                <p className="text-gray-400 italic">কোনো পোস্ট পাওয়া যায়নি...</p>
               </div>
-            ))
+            ) : (
+              posts.map((post) => (
+                <div key={post.id} className="bg-white rounded-3xl shadow-xl p-6 border border-rose-100 overflow-hidden relative">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
+                  
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-bold text-gray-800">User: {post.userId}</h3>
+                      <p className="text-xs text-gray-400">{formatDistanceToNow(post.createdAt)} ago</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(post.id);
+                        }}
+                        className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all p-2 rounded-lg group"
+                        title="Delete Post"
+                      >
+                        <Trash2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                      </button>
+                      <Heart className="w-5 h-5 text-rose-200" />
+                    </div>
+                  </div>
+
+                  <p className="text-gray-700 text-lg mb-6 leading-relaxed bg-rose-50/30 p-4 rounded-2xl">
+                    {post.content}
+                  </p>
+
+                  {/* Replies Section */}
+                  {post.replies && post.replies.length > 0 && (
+                    <div className="mb-6 space-y-3">
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Replies</h4>
+                      {post.replies.map((reply) => (
+                        <div key={reply.id} className={`p-3 rounded-2xl text-sm ${reply.isAdmin ? 'bg-rose-100/50 ml-6' : 'bg-gray-50'}`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`font-bold ${reply.isAdmin ? 'text-rose-600' : 'text-gray-600'}`}>
+                              {reply.isAdmin ? 'Admin' : 'User'}
+                            </span>
+                            <span className="text-[10px] text-gray-400">{formatDistanceToNow(reply.createdAt)} ago</span>
+                          </div>
+                          <p className="text-gray-700">{reply.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Reply Form */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={replyText[post.id] || ''}
+                      onChange={(e) => setReplyText(prev => ({ ...prev, [post.id]: e.target.value }))}
+                      placeholder="রিপ্লাই লেখো..."
+                      className="flex-1 px-4 py-2 rounded-xl border border-rose-100 focus:border-rose-400 outline-none text-sm transition-all"
+                      onKeyPress={(e) => e.key === 'Enter' && handleReply(post.id)}
+                    />
+                    <button
+                      onClick={() => handleReply(post.id)}
+                      disabled={isSubmitting[post.id] || !replyText[post.id]?.trim()}
+                      className="bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white p-2 rounded-xl transition-all"
+                    >
+                      <Send className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )
+          ) : (
+            <div className="space-y-6">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-rose-300" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="মোবাইল নাম্বার বা নাম দিয়ে সার্চ করো..."
+                  className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-rose-100 focus:border-rose-400 outline-none transition-all bg-white shadow-sm"
+                />
+              </div>
+
+              {filteredRequests.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-rose-100">
+                  <p className="text-gray-400 italic">কোনো রিকোয়েস্ট পাওয়া যায়নি...</p>
+                </div>
+              ) : (
+                filteredRequests.map((req) => (
+                  <div key={req.id} className="bg-white rounded-3xl shadow-xl p-6 border border-rose-100 relative overflow-hidden">
+                    <div className={`absolute top-0 left-0 w-1 h-full ${req.status === 'approved' ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+                    
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="font-bold text-gray-800 text-xl">{req.name}</h3>
+                        <div className="flex gap-4 mt-1">
+                          <p className="text-sm text-gray-500 flex items-center gap-1">
+                            <Phone className="w-3 h-3" /> {req.mobile}
+                          </p>
+                          <p className="text-sm text-gray-500 flex items-center gap-1">
+                            <Mail className="w-3 h-3" /> {req.email}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full ${
+                        req.status === 'approved' ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'
+                      }`}>
+                        {req.status}
+                      </span>
+                    </div>
+
+                    <div className="bg-rose-50/30 p-4 rounded-2xl mt-4">
+                      {req.status === 'approved' ? (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-green-600 font-bold">
+                            <Check className="w-5 h-5" />
+                            Assigned ID: <span className="text-gray-800">{req.assignedUserId}</span>
+                          </div>
+                          <p className="text-[10px] text-gray-400">{formatDistanceToNow(req.createdAt)} ago</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-4">
+                          <p className="text-sm text-gray-600 font-medium italic">নতুন ইউজার আইডি এসাইন করো:</p>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-rose-300" />
+                              <input
+                                type="text"
+                                value={assigningUserId[req.id] || ''}
+                                onChange={(e) => setAssigningUserId(prev => ({ ...prev, [req.id]: e.target.value }))}
+                                placeholder="যেমন: sumi52"
+                                className="w-full pl-10 pr-4 py-2 rounded-xl border border-rose-100 focus:border-rose-400 outline-none text-sm transition-all bg-white"
+                              />
+                            </div>
+                            <button
+                              onClick={() => handleAssignId(req.id)}
+                              disabled={!assigningUserId[req.id]?.trim()}
+                              className="bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white px-6 py-2 rounded-xl font-bold transition-all shadow-md shadow-rose-100 flex items-center gap-2"
+                            >
+                              Assign ID
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           )}
         </div>
       </div>

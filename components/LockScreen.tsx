@@ -1,24 +1,32 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, Lock, Sparkles } from 'lucide-react';
+import { subscribeToApprovedUserIds } from '../services/firebase';
 
 interface LockScreenProps {
   onUnlock: (userId: string, isAdmin: boolean) => void;
   onDecoy: () => void;
+  onRegister: () => void;
 }
 
-const LockScreen: React.FC<LockScreenProps> = ({ onUnlock, onDecoy }) => {
+const LockScreen: React.FC<LockScreenProps> = ({ onUnlock, onDecoy, onRegister }) => {
   const [inputId, setInputId] = useState('');
   const [error, setError] = useState(false);
+  const [approvedIds, setApprovedIds] = useState<string[]>([]);
   const VALID_IDS = ['auntora93', 'Auntora93', 'sumi52'];
   const ADMIN_IDS = ['rkb@93', 'loveadmin'];
   const DECOY_ID = 'temp80';
+
+  useEffect(() => {
+    const unsubscribe = subscribeToApprovedUserIds(setApprovedIds);
+    return () => unsubscribe();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedInput = inputId.trim();
     
-    if (VALID_IDS.includes(trimmedInput)) {
+    if (VALID_IDS.includes(trimmedInput) || approvedIds.includes(trimmedInput)) {
       onUnlock(trimmedInput, false);
     } else if (ADMIN_IDS.includes(trimmedInput)) {
       onUnlock(trimmedInput, true);
@@ -95,6 +103,17 @@ const LockScreen: React.FC<LockScreenProps> = ({ onUnlock, onDecoy }) => {
               <Heart className="w-5 h-5 fill-white" />
             </button>
           </form>
+
+          <div className="mt-8 pt-6 border-t border-rose-50">
+            <p className="text-gray-400 text-sm mb-3">তোমার কি কোনো আইডি নেই?</p>
+            <button
+              onClick={onRegister}
+              className="text-rose-500 font-bold hover:text-rose-600 transition-colors flex items-center justify-center gap-2 mx-auto"
+            >
+              নতুন আইডি রেজিস্ট্রেশন করো
+              <Sparkles className="w-4 h-4" />
+            </button>
+          </div>
 
           {error && (
             <div className="mt-6 flex items-center justify-center gap-2 text-red-500 animate-bounce">
