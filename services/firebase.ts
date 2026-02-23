@@ -1,7 +1,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, Timestamp, where, deleteDoc, getDocs } from 'firebase/firestore';
-import { Post, Reply, RegistrationRequest, FriendRequest, ChatMessage, Notification } from '../types';
+import { Post, Reply, RegistrationRequest, FriendRequest, ChatMessage, Notification, UserProfile } from '../types';
 
 // These should be replaced with actual config from user later
 const firebaseConfig = {
@@ -27,6 +27,7 @@ const REGISTRATION_COLLECTION = 'registration_requests';
 const FRIEND_REQUESTS_COLLECTION = 'friend_requests';
 const CHAT_MESSAGES_COLLECTION = 'chat_messages';
 const NOTIFICATIONS_COLLECTION = 'notifications';
+const USER_PROFILES_COLLECTION = 'user_profiles';
 
 export const createPost = async (userId: string, content: string, imageUrl?: string) => {
   try {
@@ -394,4 +395,51 @@ export const checkUserIdExists = async (userId: string): Promise<boolean> => {
   );
   const snapshot = await getDocs(q);
   return !snapshot.empty;
+};
+
+export const subscribeToUserProfile = (userId: string, callback: (profile: UserProfile | null) => void) => {
+  const q = query(collection(db, USER_PROFILES_COLLECTION), where('userId', '==', userId));
+  return onSnapshot(q, (snapshot) => {
+    if (snapshot.empty) {
+      callback(null);
+    } else {
+      callback(snapshot.docs[0].data() as UserProfile);
+    }
+  });
+};
+
+export const subscribeToAllUserProfiles = (callback: (profiles: { [userId: string]: UserProfile }) => void) => {
+  const q = query(collection(db, USER_PROFILES_COLLECTION));
+  return onSnapshot(q, (snapshot) => {
+    const profiles: { [userId: string]: UserProfile } = {};
+    snapshot.docs.forEach(doc => {
+      const p = doc.data() as UserProfile;
+      profiles[p.userId] = p;
+    });
+    callback(profiles);
+  });
+};
+
+export const updateUserProfile = async (userId: string, profileImageUrl: string) => {
+  try {
+    const q = query(collection(db, USER_PROFILES_COLLECTION), where('userId', '==', userId));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      await addDoc(collection(db, USER_PROFILES_COLLECTION), {
+        userId,
+        profileImageUrl,
+        updatedAt: Date.now()
+      });
+    } else {
+      const docRef = doc(db, USER_PROFILES_COLLECTION, snapshot.docs[0].id);
+      await updateDoc(docRef, {
+        profileImageUrl,
+        updatedAt: Date.now()
+      });
+    }
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    throw error;
+  }
 };

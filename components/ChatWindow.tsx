@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChatMessage } from '../types';
-import { sendChatMessage, subscribeToChat, markMessagesAsRead } from '../services/firebase';
+import { sendChatMessage, subscribeToChat, markMessagesAsRead, subscribeToUserProfile } from '../services/firebase';
 import { Send, X, User } from 'lucide-react';
 import { format } from 'date-fns';
+import { ChatMessage, UserProfile } from '../types';
 
 interface ChatWindowProps {
   userId: string;
@@ -13,13 +13,18 @@ interface ChatWindowProps {
 
 const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [friendProfile, setFriendProfile] = useState<UserProfile | null>(null);
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeToChat(userId, friendId, setMessages);
+    const unsubProfile = subscribeToUserProfile(friendId, setFriendProfile);
     markMessagesAsRead(userId, friendId);
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      unsubProfile();
+    };
   }, [userId, friendId]);
 
   useEffect(() => {
@@ -47,8 +52,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
         {/* Header */}
         <div className="bg-rose-500 p-6 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-2 rounded-full">
-              <User className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-full border-2 border-white/30 overflow-hidden bg-white/10 flex items-center justify-center">
+              {friendProfile?.profileImageUrl ? (
+                <img 
+                  src={friendProfile.profileImageUrl} 
+                  alt={friendId} 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <User className="w-6 h-6" />
+              )}
             </div>
             <div>
               <h3 className="font-bold">{friendId}</h3>

@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts } from '../services/firebase';
-import { Post, FriendRequest, Notification } from '../types';
-import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles } from '../services/firebase';
+import { Post, FriendRequest, Notification, UserProfile } from '../types';
+import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import ChatWindow from './ChatWindow';
 
@@ -24,8 +24,12 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   const [activeChatFriend, setActiveChatFriend] = useState<string | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<{ [friendId: string]: number }>({});
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [allProfiles, setAllProfiles] = useState<{ [userId: string]: UserProfile }>({});
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const profileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isFirebaseConfigured) return;
@@ -34,12 +38,16 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
     const unsubRequests = subscribeToIncomingFriendRequests(userId, setIncomingRequests);
     const unsubNotifications = subscribeToNotifications(userId, setNotifications);
     const unsubUnread = subscribeToUnreadMessageCounts(userId, setUnreadCounts);
+    const unsubProfile = subscribeToUserProfile(userId, setUserProfile);
+    const unsubAllProfiles = subscribeToAllUserProfiles(setAllProfiles);
 
     return () => {
       unsubFriends();
       unsubRequests();
       unsubNotifications();
       unsubUnread();
+      unsubProfile();
+      unsubAllProfiles();
     };
   }, [userId]);
 
@@ -83,6 +91,28 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleProfileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 500 * 1024) { // 500KB limit for profile pic
+        alert('প্রোফাইল ছবিটি ৫০০ কেবির চেয়ে বড়। ছোট ছবি ব্যবহার করো।');
+        return;
+      }
+      setIsUpdatingProfile(true);
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          await updateUserProfile(userId, reader.result as string);
+        } catch (error) {
+          alert('প্রোফাইল ছবি আপডেট করতে সমস্যা হয়েছে।');
+        } finally {
+          setIsUpdatingProfile(false);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -161,6 +191,59 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
   return (
     <div className="w-full max-w-2xl mx-auto mt-12 px-4 pb-12">
+      {/* User Profile Header */}
+      <div className="bg-white/90 backdrop-blur-md rounded-[2.5rem] p-8 shadow-2xl border border-rose-100 mb-8 flex flex-col sm:flex-row items-center gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="relative group">
+          <div className="w-32 h-32 rounded-full border-4 border-rose-100 overflow-hidden bg-rose-50 flex items-center justify-center shadow-inner">
+            {userProfile?.profileImageUrl ? (
+              <img 
+                src={userProfile.profileImageUrl} 
+                alt="Profile" 
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <User className="w-16 h-16 text-rose-200" />
+            )}
+            {isUpdatingProfile && (
+              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+          </div>
+          <button 
+            onClick={() => profileInputRef.current?.click()}
+            className="absolute bottom-1 right-1 bg-rose-500 text-white p-2.5 rounded-full shadow-lg hover:bg-rose-600 transition-all active:scale-95 group-hover:scale-110"
+            title="প্রোফাইল ছবি পরিবর্তন করো"
+          >
+            <Camera className="w-4 h-4" />
+          </button>
+          <input 
+            type="file" 
+            accept="image/*" 
+            className="hidden" 
+            ref={profileInputRef} 
+            onChange={handleProfileImageChange}
+          />
+        </div>
+        
+        <div className="text-center sm:text-left flex-1">
+          <h1 className="text-4xl font-bold text-gray-800 font-serif tracking-tight mb-1">
+            {userId}
+          </h1>
+          <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-3">
+            <span className="bg-rose-50 text-rose-600 px-4 py-1.5 rounded-full text-xs font-bold border border-rose-100 flex items-center gap-1.5">
+              <Heart className="w-3 h-3 fill-rose-600" />
+              Active Member
+            </span>
+            <span className="bg-rose-50 text-rose-600 px-4 py-1.5 rounded-full text-xs font-bold border border-rose-100 flex items-center gap-1.5">
+              <Users className="w-3 h-3" />
+              {friends.length} Friends
+            </span>
+          </div>
+        </div>
+      </div>
+
       <div className="flex justify-between items-center mb-6">
         <button 
           onClick={onBack}
@@ -297,8 +380,17 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
             {friends.map((friendId) => (
               <div key={friendId} className="flex items-center justify-between bg-rose-50/30 p-4 rounded-2xl border border-rose-50 group hover:border-rose-200 transition-all">
                 <div className="flex items-center gap-3">
-                  <div className="bg-rose-100 p-2 rounded-full">
-                    <Users className="w-4 h-4 text-rose-500" />
+                  <div className="w-10 h-10 rounded-full border border-rose-100 overflow-hidden bg-rose-50 flex items-center justify-center">
+                    {allProfiles[friendId]?.profileImageUrl ? (
+                      <img 
+                        src={allProfiles[friendId].profileImageUrl} 
+                        alt={friendId} 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <Users className="w-5 h-5 text-rose-300" />
+                    )}
                   </div>
                   <span className="font-bold text-gray-700">{friendId}</span>
                 </div>
@@ -401,8 +493,22 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
           ) : (
             posts.map((post) => (
               <div key={post.id} className="bg-rose-50/50 rounded-2xl p-4 border border-rose-100 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-xs font-bold text-rose-400 uppercase tracking-wider">User: {post.userId}</span>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full overflow-hidden border border-rose-100 bg-white flex items-center justify-center">
+                      {allProfiles[post.userId]?.profileImageUrl ? (
+                        <img 
+                          src={allProfiles[post.userId].profileImageUrl} 
+                          alt={post.userId} 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <User className="w-4 h-4 text-rose-200" />
+                      )}
+                    </div>
+                    <span className="text-xs font-bold text-rose-400 uppercase tracking-wider">{post.userId}</span>
+                  </div>
                   <span className="text-[10px] text-gray-400">{formatDistanceToNow(post.createdAt)} ago</span>
                 </div>
                 <p className="text-gray-800 leading-relaxed mb-3">{post.content}</p>

@@ -42,6 +42,12 @@ export interface ChatMessage {
   createdAt: number;
 }
 
+export interface UserProfile {
+  userId: string;
+  profileImageUrl?: string;
+  updatedAt: number;
+}
+
 export interface Notification {
   id: string;
   toUserId: string;

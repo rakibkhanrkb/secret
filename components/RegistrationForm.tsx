@@ -13,6 +13,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onBack }) => {
     mobile: '',
     email: ''
   });
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -43,7 +44,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onBack }) => {
           </div>
           <h2 className="text-3xl font-bold text-gray-800 mb-4 font-serif">আবেদন সফল হয়েছে!</h2>
           <p className="text-gray-600 mb-8 leading-relaxed">
-            তোমার রেজিস্ট্রেশন রিকোয়েস্ট অ্যাডমিন বরাবর পাঠানো হয়েছে। অ্যাডমিন তোমার মোবাইল নাম্বারে যোগাযোগ করে তোমাকে একটি ইউজার আইডি প্রদান করবেন।
+            তোমার রেজিস্ট্রেশন রিকোয়েস্ট অ্যাডমিন বরাবর পাঠানো হয়েছে। অ্যাডমিন তোমার ্ ইমেইল এ  যোগাযোগ করে তোমাকে একটি ইউজার আইডি প্রদান করবেন, ধন্যবাদ।
           </p>
           <button
             onClick={onBack}

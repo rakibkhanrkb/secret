@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { subscribeToPosts, addReply, isFirebaseConfigured, deletePost, subscribeToRegistrationRequests, assignUserIdToRequest } from '../services/firebase';
-import { Post, RegistrationRequest } from '../types';
-import { Shield, Reply as ReplyIcon, Send, Heart, ArrowLeft, AlertCircle, Trash2, Users, MessageSquare, Search, UserPlus, Check, Phone, Mail } from 'lucide-react';
+import { subscribeToPosts, addReply, isFirebaseConfigured, deletePost, subscribeToRegistrationRequests, assignUserIdToRequest, subscribeToAllUserProfiles } from '../services/firebase';
+import { Post, RegistrationRequest, UserProfile } from '../types';
+import { Shield, Reply as ReplyIcon, Send, Heart, ArrowLeft, AlertCircle, Trash2, Users, MessageSquare, Search, UserPlus, Check, Phone, Mail, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface AdminDashboardProps {
@@ -12,6 +12,7 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
+  const [allProfiles, setAllProfiles] = useState<{ [userId: string]: UserProfile }>({});
   const [activeTab, setActiveTab] = useState<'posts' | 'requests'>('posts');
   const [searchQuery, setSearchQuery] = useState('');
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
@@ -22,9 +23,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     if (!isFirebaseConfigured) return;
     const unsubscribePosts = subscribeToPosts(setPosts);
     const unsubscribeRequests = subscribeToRegistrationRequests(setRequests);
+    const unsubscribeProfiles = subscribeToAllUserProfiles(setAllProfiles);
     return () => {
       unsubscribePosts();
       unsubscribeRequests();
+      unsubscribeProfiles();
     };
   }, []);
 
@@ -154,9 +157,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                   <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
                   
                   <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-bold text-gray-800">User: {post.userId}</h3>
-                      <p className="text-xs text-gray-400">{formatDistanceToNow(post.createdAt)} ago</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-rose-100 bg-rose-50 flex items-center justify-center">
+                        {allProfiles[post.userId]?.profileImageUrl ? (
+                          <img 
+                            src={allProfiles[post.userId].profileImageUrl} 
+                            alt={post.userId} 
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <User className="w-5 h-5 text-rose-200" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-800">{post.userId}</h3>
+                        <p className="text-xs text-gray-400">{formatDistanceToNow(post.createdAt)} ago</p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <button 
