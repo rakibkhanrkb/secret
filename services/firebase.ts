@@ -1,7 +1,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, Timestamp, where, deleteDoc, getDocs } from 'firebase/firestore';
-import { Post, Reply, RegistrationRequest, FriendRequest, ChatMessage, Notification, UserProfile } from '../types';
+import { Post, Reply, RegistrationRequest, FriendRequest, ChatMessage, Notification, UserProfile, UserAccount } from '../types';
 
 // These should be replaced with actual config from user later
 const firebaseConfig = {
@@ -28,6 +28,7 @@ const FRIEND_REQUESTS_COLLECTION = 'friend_requests';
 const CHAT_MESSAGES_COLLECTION = 'chat_messages';
 const NOTIFICATIONS_COLLECTION = 'notifications';
 const USER_PROFILES_COLLECTION = 'user_profiles';
+const USER_ACCOUNTS_COLLECTION = 'user_accounts';
 
 export const createPost = async (userId: string, content: string, imageUrl?: string) => {
   try {
@@ -383,18 +384,79 @@ export const subscribeToAllVisiblePosts = (userId: string, friendIds: string[], 
 };
 
 export const checkUserIdExists = async (userId: string): Promise<boolean> => {
-  // Hardcoded valid IDs
-  const HARDCODED_IDS = ['auntora93', 'Auntora93', 'sumi52', 'rkb@93', 'loveadmin'];
-  if (HARDCODED_IDS.includes(userId)) return true;
-
   // Check database
   const q = query(
-    collection(db, REGISTRATION_COLLECTION), 
-    where('assignedUserId', '==', userId),
-    where('status', '==', 'approved')
+    collection(db, USER_ACCOUNTS_COLLECTION), 
+    where('userId', '==', userId)
   );
   const snapshot = await getDocs(q);
   return !snapshot.empty;
+};
+
+export const checkMobileExists = async (mobile: string): Promise<boolean> => {
+  const q = query(
+    collection(db, USER_ACCOUNTS_COLLECTION), 
+    where('mobile', '==', mobile)
+  );
+  const snapshot = await getDocs(q);
+  return !snapshot.empty;
+};
+
+export const registerUser = async (userId: string, password: string, mobile: string) => {
+  try {
+    await addDoc(collection(db, USER_ACCOUNTS_COLLECTION), {
+      userId,
+      password,
+      mobile,
+      createdAt: Date.now()
+    });
+  } catch (error) {
+    console.error("Error registering user:", error);
+    throw error;
+  }
+};
+
+export const loginUser = async (identifier: string, password: string): Promise<boolean> => {
+  // Hardcoded Admin check
+  if (identifier === 'rkb@93' && password === 'rkb@80') return true;
+  // User requested sumi52 password
+  if (identifier === 'sumi52' && password === 'sumi52') return true;
+
+  // Check by User ID
+  const qId = query(
+    collection(db, USER_ACCOUNTS_COLLECTION), 
+    where('userId', '==', identifier),
+    where('password', '==', password)
+  );
+  const snapshotId = await getDocs(qId);
+  if (!snapshotId.empty) return true;
+
+  // Check by Mobile Number
+  const qMobile = query(
+    collection(db, USER_ACCOUNTS_COLLECTION), 
+    where('mobile', '==', identifier),
+    where('password', '==', password)
+  );
+  const snapshotMobile = await getDocs(qMobile);
+  return !snapshotMobile.empty;
+};
+
+export const resetUserPassword = async (mobile: string, newPassword: string): Promise<boolean> => {
+  try {
+    const q = query(
+      collection(db, USER_ACCOUNTS_COLLECTION), 
+      where('mobile', '==', mobile)
+    );
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return false;
+    
+    const docRef = doc(db, USER_ACCOUNTS_COLLECTION, snapshot.docs[0].id);
+    await updateDoc(docRef, { password: newPassword });
+    return true;
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    throw error;
+  }
 };
 
 export const subscribeToUserProfile = (userId: string, callback: (profile: UserProfile | null) => void) => {

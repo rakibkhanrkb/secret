@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles } from '../services/firebase';
 import { Post, FriendRequest, Notification, UserProfile } from '../types';
-import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User } from 'lucide-react';
+import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import ChatWindow from './ChatWindow';
 
@@ -190,121 +190,364 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto mt-12 px-4 pb-12">
-      {/* User Profile Header */}
-      <div className="bg-white/90 backdrop-blur-md rounded-[2.5rem] p-8 shadow-2xl border border-rose-100 mb-8 flex flex-col sm:flex-row items-center gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
-        <div className="relative group">
-          <div className="w-32 h-32 rounded-full border-4 border-rose-100 overflow-hidden bg-rose-50 flex items-center justify-center shadow-inner">
-            {userProfile?.profileImageUrl ? (
-              <img 
-                src={userProfile.profileImageUrl} 
-                alt="Profile" 
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <User className="w-16 h-16 text-rose-200" />
-            )}
-            {isUpdatingProfile && (
-              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            )}
+    <div className="min-h-screen bg-[#F0F2F5] flex flex-col">
+      {/* Facebook Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50 h-14 flex items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          <div className="text-[#1D4ED8] font-bold text-4xl tracking-tighter">Mitali</div>
+          <div className="relative ml-2 hidden md:block">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input 
+              type="text" 
+              placeholder="মিতালি খুঁজুন" 
+              className="bg-[#F0F2F5] pl-10 pr-4 py-2 rounded-full text-sm outline-none w-60 focus:ring-1 focus:ring-gray-300"
+            />
           </div>
-          <button 
-            onClick={() => profileInputRef.current?.click()}
-            className="absolute bottom-1 right-1 bg-rose-500 text-white p-2.5 rounded-full shadow-lg hover:bg-rose-600 transition-all active:scale-95 group-hover:scale-110"
-            title="প্রোফাইল ছবি পরিবর্তন করো"
-          >
-            <Camera className="w-4 h-4" />
+        </div>
+
+        <nav className="hidden lg:flex items-center gap-2 h-full">
+          <button className="h-full px-10 border-b-4 border-[#1D4ED8] text-[#1D4ED8]">
+            <Home className="w-7 h-7" />
           </button>
-          <input 
-            type="file" 
-            accept="image/*" 
-            className="hidden" 
-            ref={profileInputRef} 
-            onChange={handleProfileImageChange}
-          />
-        </div>
-        
-        <div className="text-center sm:text-left flex-1">
-          <h1 className="text-4xl font-bold text-gray-800 font-serif tracking-tight mb-1">
-            {userId}
-          </h1>
-          <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-3">
-            <span className="bg-rose-50 text-rose-600 px-4 py-1.5 rounded-full text-xs font-bold border border-rose-100 flex items-center gap-1.5">
-              <Heart className="w-3 h-3 fill-rose-600" />
-              Active Member
-            </span>
-            <span className="bg-rose-50 text-rose-600 px-4 py-1.5 rounded-full text-xs font-bold border border-rose-100 flex items-center gap-1.5">
-              <Users className="w-3 h-3" />
-              {friends.length} Friends
-            </span>
-          </div>
-        </div>
-      </div>
+          <button className="h-full px-10 text-gray-500 hover:bg-gray-100 rounded-lg">
+            <Users className="w-7 h-7" />
+          </button>
+          <button className="h-full px-10 text-gray-500 hover:bg-gray-100 rounded-lg">
+            <Video className="w-7 h-7" />
+          </button>
+          <button className="h-full px-10 text-gray-500 hover:bg-gray-100 rounded-lg">
+            <ShoppingBag className="w-7 h-7" />
+          </button>
+        </nav>
 
-      <div className="flex justify-between items-center mb-6">
-        <button 
-          onClick={onBack}
-          className="flex items-center gap-2 text-rose-600 hover:text-rose-700 font-medium transition-colors bg-white/50 px-4 py-2 rounded-full backdrop-blur-sm border border-rose-100"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          ফিরে যাও
-        </button>
-
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <button className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors relative">
+            <Menu className="w-5 h-5 text-gray-700" />
+          </button>
+          <button className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors relative">
+            <MessageSquare className="w-5 h-5 text-gray-700" />
+            {(Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number) > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number}
+              </span>
+            )}
+          </button>
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
-            className="relative flex items-center gap-2 text-rose-600 hover:text-rose-700 font-medium transition-colors bg-white/50 px-4 py-2 rounded-full backdrop-blur-sm border border-rose-100"
+            className={`p-2 rounded-full transition-colors relative ${showNotifications ? 'bg-blue-50 text-[#1D4ED8]' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
           >
-            <Bell className="w-4 h-4" />
+            <Bell className="w-5 h-5" />
             {notifications.filter(n => !n.read).length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                 {notifications.filter(n => !n.read).length}
               </span>
             )}
           </button>
           <button 
-            onClick={() => setIsAddingFriend(!isAddingFriend)}
-            className="flex items-center gap-2 text-rose-600 hover:text-rose-700 font-medium transition-colors bg-white/50 px-4 py-2 rounded-full backdrop-blur-sm border border-rose-100"
+            onClick={onBack}
+            className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors text-gray-700"
+            title="লগ আউট"
           >
-            <UserPlus className="w-4 h-4" />
-            ফ্রেন্ড অ্যাড করো
+            <LogOut className="w-5 h-5" />
           </button>
+          <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 ml-2 cursor-pointer">
+            {userProfile?.profileImageUrl ? (
+              <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                <User className="w-6 h-6 text-gray-500" />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </header>
 
-      {showNotifications && (
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl p-6 border border-rose-100 mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-gray-800 flex items-center gap-2">
-              <Bell className="w-5 h-5 text-rose-500" />
-              নোটিফিকেশন
-            </h3>
-            <button onClick={() => setShowNotifications(false)} className="text-gray-400 hover:text-gray-600">
-              <X className="w-4 h-4" />
+      <main className="flex-1 flex justify-center gap-8 p-4 max-w-[1400px] mx-auto w-full">
+        {/* Left Sidebar */}
+        <aside className="hidden xl:block w-72 space-y-2">
+          <div className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors">
+            <div className="w-9 h-9 rounded-full overflow-hidden">
+              {userProfile?.profileImageUrl ? (
+                <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <User className="w-5 h-5 text-gray-500" />
+                </div>
+              )}
+            </div>
+            <span className="font-semibold text-gray-800">{userId}</span>
+          </div>
+          <div className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors">
+            <Users className="w-9 h-9 text-[#1D4ED8]" />
+            <span className="font-semibold text-gray-800">বন্ধুরা</span>
+          </div>
+          <div className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors">
+            <Video className="w-9 h-9 text-[#1D4ED8]" />
+            <span className="font-semibold text-gray-800">ভিডিও</span>
+          </div>
+          <div className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors">
+            <ShoppingBag className="w-9 h-9 text-[#1D4ED8]" />
+            <span className="font-semibold text-gray-800">মার্কেটপ্লেস</span>
+          </div>
+        </aside>
+
+        {/* Center Feed */}
+        <div className="max-w-[680px] w-full space-y-4">
+          {/* Create Post */}
+          <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+            <div className="flex gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                {userProfile?.profileImageUrl ? (
+                  <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <User className="w-6 h-6 text-gray-500" />
+                  </div>
+                )}
+              </div>
+              <button 
+                onClick={() => setIsUpdatingProfile(true)}
+                className="bg-[#F0F2F5] hover:bg-gray-200 text-gray-600 text-left px-4 py-2 rounded-full flex-1 transition-colors"
+              >
+                {userId}, আপনি এখন কী ভাবছেন?
+              </button>
+            </div>
+            <hr className="border-gray-100 mb-3" />
+            <div className="flex justify-between">
+              <button className="flex items-center gap-2 hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors text-gray-600 font-semibold">
+                <Video className="w-6 h-6 text-red-500" />
+                লাইভ ভিডিও
+              </button>
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors text-gray-600 font-semibold"
+              >
+                <ImageIcon className="w-6 h-6 text-[#42B72A]" />
+                ছবি/ভিডিও
+              </button>
+              <button className="flex items-center gap-2 hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors text-gray-600 font-semibold">
+                <Heart className="w-6 h-6 text-yellow-500" />
+                অনুভূতি/অ্যাক্টিভিটি
+              </button>
+            </div>
+          </div>
+
+          {/* Posts Feed */}
+          <div className="space-y-4">
+            {posts.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200">
+                <Users className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-gray-400">এখনও কোনো পোস্ট নেই</h3>
+                <p className="text-gray-400">বন্ধু যোগ করুন এবং তাদের পোস্ট দেখুন!</p>
+              </div>
+            ) : (
+              posts.map((post) => (
+                <div key={post.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
+                  {/* Post Header */}
+                  <div className="p-4 flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100">
+                        {allProfiles[post.userId]?.profileImageUrl ? (
+                          <img src={allProfiles[post.userId].profileImageUrl} alt={post.userId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                            <User className="w-6 h-6 text-gray-500" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900 hover:underline cursor-pointer">{post.userId}</h4>
+                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                          {formatDistanceToNow(post.createdAt)} ago • <Users className="w-3 h-3" />
+                        </p>
+                      </div>
+                    </div>
+                    <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                      <MoreHorizontal className="w-5 h-5 text-gray-500" />
+                    </button>
+                  </div>
+
+                  {/* Post Content */}
+                  <div className="px-4 pb-3">
+                    <p className="text-gray-800 whitespace-pre-wrap">{post.content}</p>
+                  </div>
+
+                  {/* Post Image */}
+                  {post.imageUrl && (
+                    <div className="border-y border-gray-100 bg-gray-50">
+                      <img src={post.imageUrl} alt="Post" className="w-full max-h-[600px] object-contain mx-auto" referrerPolicy="no-referrer" />
+                    </div>
+                  )}
+
+                  {/* Post Stats */}
+                  <div className="px-4 py-2 flex justify-between items-center text-sm text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <div className="bg-[#1D4ED8] p-1 rounded-full">
+                        <ThumbsUp className="w-3 h-3 text-white fill-white" />
+                      </div>
+                      <span>১২</span>
+                    </div>
+                    <div className="flex gap-3">
+                      <span>{post.replies?.length || 0} টি কমেন্ট</span>
+                      <span>৫ টি শেয়ার</span>
+                    </div>
+                  </div>
+
+                  <hr className="mx-4 border-gray-100" />
+
+                  {/* Post Actions */}
+                  <div className="px-4 py-1 flex justify-between">
+                    <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 font-semibold">
+                      <ThumbsUp className="w-5 h-5" />
+                      লাইক
+                    </button>
+                    <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 font-semibold">
+                      <MessageSquare className="w-5 h-5" />
+                      কমেন্ট
+                    </button>
+                    <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 font-semibold">
+                      <Share2 className="w-5 h-5" />
+                      শেয়ার
+                    </button>
+                  </div>
+
+                  {/* Comments Section */}
+                  {post.replies && post.replies.length > 0 && (
+                    <div className="px-4 pb-4 space-y-3 mt-2">
+                      {post.replies.map((reply) => (
+                        <div key={reply.id} className="flex gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center">
+                            <User className="w-4 h-4 text-gray-500" />
+                          </div>
+                          <div className="bg-[#F0F2F5] p-2 px-3 rounded-2xl max-w-[90%]">
+                            <p className="text-xs font-bold text-gray-900">{reply.isAdmin ? 'অ্যাডমিন' : 'ইউজার'}</p>
+                            <p className="text-sm text-gray-800">{reply.content}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add Comment */}
+                  <div className="px-4 pb-4 flex gap-2">
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                      {userProfile?.profileImageUrl ? (
+                        <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <User className="w-5 h-5 text-gray-500" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 bg-[#F0F2F5] rounded-2xl flex items-center px-3">
+                      <input 
+                        type="text" 
+                        placeholder="কমেন্ট লিখুন..."
+                        value={replyText[post.id] || ''}
+                        onChange={(e) => setReplyText({ ...replyText, [post.id]: e.target.value })}
+                        onKeyPress={(e) => e.key === 'Enter' && handleReply(post.id)}
+                        className="bg-transparent border-none outline-none flex-1 py-1.5 text-sm"
+                      />
+                      <button 
+                        onClick={() => handleReply(post.id)}
+                        className="text-[#1D4ED8] hover:bg-blue-50 p-1 rounded-full transition-colors"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Right Sidebar - Friends & Contacts */}
+        <aside className="hidden lg:block w-72 space-y-4">
+          <div className="flex justify-between items-center px-2">
+            <h3 className="font-bold text-gray-500">আপনার বন্ধুরা</h3>
+            <div className="flex gap-2">
+              <Search className="w-4 h-4 text-gray-500 cursor-pointer" />
+              <MoreHorizontal className="w-4 h-4 text-gray-500 cursor-pointer" />
+            </div>
+          </div>
+          
+          <div className="space-y-1">
+            {friends.length === 0 ? (
+              <p className="text-sm text-gray-400 px-2 italic">কোনো বন্ধু নেই</p>
+            ) : (
+              friends.map((friendId) => (
+                <div 
+                  key={friendId} 
+                  onClick={() => setActiveChatFriend(friendId)}
+                  className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors relative"
+                >
+                  <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 relative">
+                    {allProfiles[friendId]?.profileImageUrl ? (
+                      <img src={allProfiles[friendId].profileImageUrl} alt={friendId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                        <User className="w-5 h-5 text-gray-500" />
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
+                  </div>
+                  <span className="font-semibold text-gray-800 flex-1">{friendId}</span>
+                  {unreadCounts[friendId] > 0 && (
+                    <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {unreadCounts[friendId]}
+                    </span>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          <hr className="border-gray-200 mx-2" />
+
+          <div className="px-2">
+            <button 
+              onClick={() => setIsAddingFriend(true)}
+              className="w-full flex items-center justify-center gap-2 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700 font-bold"
+            >
+              <UserPlus className="w-5 h-5" />
+              বন্ধু খুঁজুন
             </button>
           </div>
-          <div className="max-h-60 overflow-y-auto space-y-3">
+        </aside>
+      </main>
+
+      {/* Modals & Overlays */}
+      {showNotifications && (
+        <div className="fixed top-14 right-4 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-[60] max-h-[80vh] overflow-y-auto">
+          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 className="font-bold text-xl">নোটিফিকেশন</h3>
+            <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-gray-100 rounded-full">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-2">
             {notifications.length === 0 ? (
-              <p className="text-center text-gray-400 py-4 italic text-sm">কোনো নোটিফিকেশন নেই...</p>
+              <p className="text-center text-gray-500 py-8">কোনো নোটিফিকেশন নেই</p>
             ) : (
               notifications.map((n) => (
                 <div 
                   key={n.id} 
-                  className={`p-4 rounded-2xl border transition-all flex justify-between items-center ${n.read ? 'bg-gray-50 border-gray-100' : 'bg-rose-50 border-rose-100 shadow-sm'}`}
+                  className={`p-3 rounded-lg flex gap-3 hover:bg-gray-100 cursor-pointer transition-colors ${!n.read ? 'bg-blue-50' : ''}`}
                   onClick={() => markNotificationAsRead(n.id)}
                 >
+                  <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                    <Bell className="w-6 h-6 text-white" />
+                  </div>
                   <div className="flex-1">
-                    <p className={`text-sm ${n.read ? 'text-gray-500' : 'text-gray-800 font-medium'}`}>{n.message}</p>
-                    <p className="text-[8px] text-gray-400 mt-1">{formatDistanceToNow(n.createdAt)} ago</p>
+                    <p className={`text-sm ${!n.read ? 'font-bold' : ''}`}>{n.message}</p>
+                    <p className="text-xs text-[#1D4ED8] mt-1">{formatDistanceToNow(n.createdAt)} ago</p>
                   </div>
                   <button 
                     onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
-                    className="text-gray-300 hover:text-red-400 p-1"
+                    className="p-1 hover:bg-gray-200 rounded-full h-fit"
                   >
-                    <X className="w-3 h-3" />
+                    <Trash2 className="w-4 h-4 text-gray-400" />
                   </button>
                 </div>
               ))
@@ -314,258 +557,111 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       )}
 
       {isAddingFriend && (
-        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl p-6 border border-rose-100 mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Search className="w-5 h-5 text-rose-500" />
-            ফ্রেন্ডের আইডি দিয়ে সার্চ করো
-          </h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={friendIdInput}
-              onChange={(e) => setFriendIdInput(e.target.value)}
-              placeholder="যেমন: sumi52"
-              className="flex-1 px-4 py-3 rounded-xl border-2 border-rose-50 focus:border-rose-400 outline-none transition-all"
-            />
-            <button
-              onClick={handleSendFriendRequest}
-              className="bg-rose-500 hover:bg-rose-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-rose-100"
-            >
-              রিকোয়েস্ট পাঠাও
-            </button>
-          </div>
-        </div>
-      )}
-
-      {incomingRequests.length > 0 && (
-        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl p-6 border border-rose-100 mb-8">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5 text-rose-500" />
-            ফ্রেন্ড রিকোয়েস্টসমূহ
-          </h3>
-          <div className="space-y-3">
-            {incomingRequests.map((req) => (
-              <div key={req.id} className="flex items-center justify-between bg-rose-50/50 p-4 rounded-2xl border border-rose-100">
-                <div>
-                  <p className="font-bold text-gray-800">{req.fromUserId}</p>
-                  <p className="text-[10px] text-gray-400">{formatDistanceToNow(req.createdAt)} ago</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleRespondToRequest(req.id, 'accepted', req.fromUserId)}
-                    className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-all shadow-sm"
-                  >
-                    <Check className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleRespondToRequest(req.id, 'rejected', req.fromUserId)}
-                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-all shadow-sm"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {friends.length > 0 && (
-        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl p-6 border border-rose-100 mb-8">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5 text-rose-500" />
-            ফ্রেন্ডলিস্ট ({friends.length})
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {friends.map((friendId) => (
-              <div key={friendId} className="flex items-center justify-between bg-rose-50/30 p-4 rounded-2xl border border-rose-50 group hover:border-rose-200 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full border border-rose-100 overflow-hidden bg-rose-50 flex items-center justify-center">
-                    {allProfiles[friendId]?.profileImageUrl ? (
-                      <img 
-                        src={allProfiles[friendId].profileImageUrl} 
-                        alt={friendId} 
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <Users className="w-5 h-5 text-rose-300" />
-                    )}
-                  </div>
-                  <span className="font-bold text-gray-700">{friendId}</span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setActiveChatFriend(friendId)}
-                    className="relative p-2 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors shadow-sm"
-                    title="Chat"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    {unreadCounts[friendId] > 0 && (
-                      <span className="absolute -top-2 -right-2 bg-white text-rose-500 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-md animate-bounce">
-                        {unreadCounts[friendId]}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleUnfriend(friendId)}
-                    className="p-2 bg-white text-gray-400 rounded-xl hover:text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100"
-                    title="Unfriend"
-                  >
-                    <UserMinus className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl p-6 border border-rose-100">
-        <h2 className="text-2xl font-serif text-rose-600 mb-6 flex items-center gap-2">
-          <MessageCircle className="w-6 h-6" />
-          তোমার মনের কথা বলো
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-4 mb-8">
-          <div className="relative">
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="এখানে তোমার মেসেজ লেখো..."
-              className="w-full px-4 py-3 rounded-2xl border-2 border-rose-100 focus:border-rose-400 outline-none transition-all min-h-[120px] resize-none"
-            />
-            <div className="absolute bottom-3 right-3 flex gap-2">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-                ref={fileInputRef}
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className={`p-2 rounded-xl transition-all ${selectedImage ? 'bg-rose-100 text-rose-500' : 'bg-gray-100 text-gray-400 hover:bg-rose-50 hover:text-rose-400'}`}
-                title="ছবি যুক্ত করো"
-              >
-                <ImageIcon className="w-5 h-5" />
+        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-2xl border border-gray-200 w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="font-bold text-xl">বন্ধু খুঁজুন</h3>
+              <button onClick={() => setIsAddingFriend(false)} className="p-1 hover:bg-gray-100 rounded-full">
+                <X className="w-5 h-5" />
               </button>
             </div>
-          </div>
-
-          {selectedImage && (
-            <div className="relative inline-block">
-              <img 
-                src={selectedImage} 
-                alt="Selected" 
-                className="max-h-32 rounded-2xl border-2 border-rose-100 shadow-sm"
-                referrerPolicy="no-referrer"
-              />
-              <button
-                type="button"
-                onClick={() => setSelectedImage(null)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-colors"
+            <div className="p-6 space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input 
+                  type="text" 
+                  placeholder="ইউজার আইডি লিখুন"
+                  value={friendIdInput}
+                  onChange={(e) => setFriendIdInput(e.target.value)}
+                  className="w-full bg-gray-100 pl-10 pr-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-[#1D4ED8]"
+                />
+              </div>
+              <button 
+                onClick={handleSendFriendRequest}
+                className="w-full bg-[#1D4ED8] hover:bg-[#1a44c2] text-white font-bold py-3 rounded-lg transition-all"
               >
-                <X className="w-3 h-3" />
+                ফ্রেন্ড রিকোয়েস্ট পাঠান
               </button>
-            </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={isSubmitting || (!message.trim() && !selectedImage)}
-            className="w-full bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
-          >
-            {isSubmitting ? 'পাঠানো হচ্ছে...' : (
-              <>
-                <Send className="w-5 h-5" />
-                পোস্ট
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-gray-700 border-b border-rose-100 pb-2">সাম্প্রতিক পোস্টসমূহ</h3>
-          {posts.length === 0 ? (
-            <p className="text-center text-gray-400 py-8 italic">এখনো কোনো পোস্ট নেই...</p>
-          ) : (
-            posts.map((post) => (
-              <div key={post.id} className="bg-rose-50/50 rounded-2xl p-4 border border-rose-100 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full overflow-hidden border border-rose-100 bg-white flex items-center justify-center">
-                      {allProfiles[post.userId]?.profileImageUrl ? (
-                        <img 
-                          src={allProfiles[post.userId].profileImageUrl} 
-                          alt={post.userId} 
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <User className="w-4 h-4 text-rose-200" />
-                      )}
-                    </div>
-                    <span className="text-xs font-bold text-rose-400 uppercase tracking-wider">{post.userId}</span>
-                  </div>
-                  <span className="text-[10px] text-gray-400">{formatDistanceToNow(post.createdAt)} ago</span>
-                </div>
-                <p className="text-gray-800 leading-relaxed mb-3">{post.content}</p>
-                
-                {post.imageUrl && (
-                  <div className="mb-4 rounded-2xl overflow-hidden border border-rose-100 shadow-sm">
-                    <img 
-                      src={post.imageUrl} 
-                      alt="Post content" 
-                      className="w-full h-auto max-h-[400px] object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                )}
-                
-                {post.replies && post.replies.length > 0 && (
-                  <div className="mt-4 space-y-3 pl-4 border-l-2 border-rose-200">
-                    {post.replies.map((reply) => (
-                      <div key={reply.id} className="bg-white/60 rounded-xl p-3 text-sm">
-                        <div className="flex items-center gap-1 mb-1">
-                          {reply.isAdmin && <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />}
-                          <span className={`font-bold ${reply.isAdmin ? 'text-rose-600' : 'text-gray-600'}`}>
-                            {reply.isAdmin ? 'Admin' : 'Reply'}
-                          </span>
+              {incomingRequests.length > 0 && (
+                <div className="pt-4 border-t border-gray-100">
+                  <h4 className="font-bold mb-3">আগত রিকোয়েস্ট</h4>
+                  <div className="space-y-3">
+                    {incomingRequests.map((req) => (
+                      <div key={req.id} className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                            <User className="w-6 h-6 text-gray-500" />
+                          </div>
+                          <span className="font-bold">{req.fromUserId}</span>
                         </div>
-                        <p className="text-gray-700">{reply.content}</p>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => respondToFriendRequest(req.id, 'accepted', req.fromUserId, req.toUserId)}
+                            className="bg-[#1D4ED8] text-white px-4 py-1.5 rounded-md text-sm font-bold"
+                          >
+                            কবুল
+                          </button>
+                          <button 
+                            onClick={() => respondToFriendRequest(req.id, 'rejected', req.fromUserId, req.toUserId)}
+                            className="bg-gray-200 text-gray-700 px-4 py-1.5 rounded-md text-sm font-bold"
+                          >
+                            বাতিল
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
-                )}
-
-                {/* Reply Form for Friends' Posts */}
-                {post.userId !== userId && (
-                  <div className="mt-4 flex gap-2">
-                    <input
-                      type="text"
-                      value={replyText[post.id] || ''}
-                      onChange={(e) => setReplyText(prev => ({ ...prev, [post.id]: e.target.value }))}
-                      placeholder="রিপ্লাই লেখো..."
-                      className="flex-1 px-3 py-2 rounded-xl border border-rose-100 focus:border-rose-400 outline-none text-xs transition-all bg-white"
-                      onKeyPress={(e) => e.key === 'Enter' && handleReply(post.id)}
-                    />
-                    <button
-                      onClick={() => handleReply(post.id)}
-                      disabled={!replyText[post.id]?.trim()}
-                      className="bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white p-2 rounded-xl transition-all shadow-sm"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-      
+      )}
+
+      {isUpdatingProfile && (
+        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-2xl border border-gray-200 w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="font-bold text-xl">প্রোফাইল আপডেট</h3>
+              <button onClick={() => setIsUpdatingProfile(false)} className="p-1 hover:bg-gray-100 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 text-center space-y-6">
+              <div className="relative inline-block group">
+                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-[#1D4ED8] bg-gray-100">
+                  {userProfile?.profileImageUrl ? (
+                    <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-16 h-16 text-gray-300" />
+                    </div>
+                  )}
+                </div>
+                <button 
+                  onClick={() => profileInputRef.current?.click()}
+                  className="absolute bottom-1 right-1 bg-[#1D4ED8] text-white p-2 rounded-full shadow-lg hover:bg-[#1a44c2] transition-all"
+                >
+                  <Camera className="w-5 h-5" />
+                </button>
+                <input type="file" accept="image/*" className="hidden" ref={profileInputRef} onChange={handleProfileImageChange} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">{userId}</h2>
+                <p className="text-gray-500">আপনার প্রোফাইল ছবি পরিবর্তন করুন</p>
+              </div>
+              <button 
+                onClick={() => setIsUpdatingProfile(false)}
+                className="w-full bg-[#1D4ED8] text-white font-bold py-3 rounded-lg"
+              >
+                সম্পন্ন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeChatFriend && (
         <ChatWindow 
           userId={userId} 

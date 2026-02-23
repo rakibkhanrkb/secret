@@ -6,6 +6,7 @@ import FloatingHearts from './components/FloatingHearts';
 import AdminDashboard from './components/AdminDashboard';
 import BlogSystem from './components/BlogSystem';
 import RegistrationForm from './components/RegistrationForm';
+import PasswordReset from './components/PasswordReset';
 import { AppState } from './types';
 
 const App: React.FC = () => {
@@ -20,10 +21,6 @@ const App: React.FC = () => {
     }, 800);
   };
 
-  const handleDecoyRejection = () => {
-    setAppState(AppState.DECOY_REJECTED);
-  };
-
   const handleBackToLock = () => {
     setAppState(AppState.LOCKED);
   };
@@ -32,19 +29,34 @@ const App: React.FC = () => {
     setAppState(AppState.REGISTRATION);
   };
 
+  const handleGoToPasswordReset = () => {
+    setAppState(AppState.PASSWORD_RESET);
+  };
+
   return (
     <div className="relative min-h-screen transition-all duration-1000">
       <FloatingHearts />
       
       {appState === AppState.LOCKED && (
         <div className="animate-in fade-in duration-500">
-          <LockScreen onUnlock={handleUnlock} onDecoy={handleDecoyRejection} onRegister={handleGoToRegistration} />
+          <LockScreen 
+            onUnlock={handleUnlock} 
+            onDecoy={() => setAppState(AppState.DECOY_REJECTED)} 
+            onRegister={handleGoToRegistration}
+            onForgotPassword={handleGoToPasswordReset}
+          />
         </div>
       )}
 
       {appState === AppState.REGISTRATION && (
         <div className="animate-in fade-in duration-500">
           <RegistrationForm onBack={handleBackToLock} />
+        </div>
+      )}
+
+      {appState === AppState.PASSWORD_RESET && (
+        <div className="animate-in fade-in duration-500">
+          <PasswordReset onBack={handleBackToLock} />
         </div>
       )}
 

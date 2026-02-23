@@ -58,13 +58,22 @@ export interface Notification {
   createdAt: number;
 }
 
+export interface UserAccount {
+  id: string;
+  userId: string;
+  password: string;
+  mobile: string;
+  createdAt: number;
+}
+
 export enum AppState {
   LOCKED = 'LOCKED',
   UNLOCKING = 'UNLOCKING',
   UNLOCKED = 'UNLOCKED',
   DECOY_REJECTED = 'DECOY_REJECTED',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
-  REGISTRATION = 'REGISTRATION'
+  REGISTRATION = 'REGISTRATION',
+  PASSWORD_RESET = 'PASSWORD_RESET'
 }
 
 export enum UserRole {

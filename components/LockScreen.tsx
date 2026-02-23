@@ -1,152 +1,141 @@
 
-import React, { useState, useEffect } from 'react';
-import { Heart, Lock, Sparkles } from 'lucide-react';
-import { subscribeToApprovedUserIds } from '../services/firebase';
+import React, { useState } from 'react';
+import { Heart, Lock, Sparkles, User, Key } from 'lucide-react';
+import { loginUser } from '../services/firebase';
 
 interface LockScreenProps {
   onUnlock: (userId: string, isAdmin: boolean) => void;
   onDecoy: () => void;
   onRegister: () => void;
+  onForgotPassword: () => void;
 }
 
-const LockScreen: React.FC<LockScreenProps> = ({ onUnlock, onDecoy, onRegister }) => {
-  const [inputId, setInputId] = useState('');
+const LockScreen: React.FC<LockScreenProps> = ({ onUnlock, onDecoy, onRegister, onForgotPassword }) => {
+  const [userId, setUserId] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(false);
-  const [approvedIds, setApprovedIds] = useState<string[]>([]);
-  const VALID_IDS = ['auntora93', 'Auntora93', 'sumi52'];
+  
   const ADMIN_IDS = ['rkb@93', 'loveadmin'];
   const DECOY_ID = 'temp80';
 
-  useEffect(() => {
-    const unsubscribe = subscribeToApprovedUserIds(setApprovedIds);
-    return () => unsubscribe();
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedInput = inputId.trim();
-    
-    if (VALID_IDS.includes(trimmedInput) || approvedIds.includes(trimmedInput)) {
-      onUnlock(trimmedInput, false);
-    } else if (ADMIN_IDS.includes(trimmedInput)) {
-      onUnlock(trimmedInput, true);
-    } else if (trimmedInput === DECOY_ID) {
-      onDecoy();
-    } else {
+    const trimmedId = userId.trim();
+    const trimmedPass = password.trim();
+
+    if (!trimmedId || !trimmedPass) {
       setError(true);
       setTimeout(() => setError(false), 2000);
+      return;
+    }
+
+    if (trimmedId === DECOY_ID) {
+      onDecoy();
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const success = await loginUser(trimmedId, trimmedPass);
+      if (success) {
+        onUnlock(trimmedId, ADMIN_IDS.includes(trimmedId));
+      } else {
+        setError(true);
+        setTimeout(() => setError(false), 2000);
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      alert('লগইন করতে সমস্যা হয়েছে।');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#fff5f5] relative overflow-hidden">
-      {/* Floating Hearts Background */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {[...Array(15)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute animate-float text-rose-200/40"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${10 + Math.random() * 10}s`,
-              fontSize: `${10 + Math.random() * 30}px`
-            }}
-          >
-            <Heart fill="currentColor" />
-          </div>
-        ))}
+    <div className="min-h-screen flex flex-col lg:flex-row items-center justify-center p-6 bg-[#F0F2F5]">
+      {/* Left Side - Branding */}
+      <div className="lg:w-1/2 max-w-lg lg:pr-12 mb-10 lg:mb-0 text-center lg:text-left">
+        <h1 className="text-6xl font-bold text-[#1D4ED8] mb-4">Mitali</h1>
+        <p className="text-2xl text-gray-700 leading-tight">
+          | বন্ধুত্ব হবে গোপনে | 
+        </p>
       </div>
 
-      {/* Main Card */}
-      <div className="relative z-10 w-full max-w-md">
-        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,182,193,0.3)] border border-white/50 text-center">
-          <div className="mb-8 relative inline-block">
-            <div className="p-5 bg-gradient-to-br from-rose-400 to-pink-500 rounded-3xl shadow-lg shadow-rose-200 animate-pulse">
-              <Lock className="h-10 w-10 text-white" />
-            </div>
-            <div className="absolute -top-2 -right-2 bg-white p-1.5 rounded-full shadow-md">
-              <Sparkles className="h-4 w-4 text-rose-400" />
-            </div>
-          </div>
-          
-          <h1 className="text-4xl font-bold text-gray-800 mb-3 font-serif tracking-tight">
-            মিতালি</h1>
-          <h3 className="text-xl font-bold text-gray-800 mb-3 font-serif tracking-tight">
-            <span className="text-rose-500">"তুমি আর আমি"</span>
-          </h3>
-          <p className="text-gray-500 mb-10 leading-relaxed px-2 text-sm font-medium">
-            প্রিয়জন কে মেসেজ করতে বা দেখতে তোমার নাম আর তোমার মোবাইল নাম্বার এর শেষ দুটি সংখ্যা লিখে আনলক করো
-          </p>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="relative group">
+      {/* Right Side - Login Card */}
+      <div className="w-full max-w-[400px]">
+        <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative">
               <input
                 type="text"
-                value={inputId}
-                onChange={(e) => setInputId(e.target.value)}
-                placeholder="এখানে লেখো (যেমন: temp80)"
-                className={`w-full px-6 py-5 rounded-2xl border-2 outline-none transition-all text-center text-lg font-medium placeholder:text-gray-300 bg-white/50 ${
-                  error 
-                    ? 'border-red-400 animate-shake bg-red-50/50' 
-                    : 'border-rose-100 focus:border-rose-400 focus:bg-white shadow-sm'
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                placeholder="ইউজার আইডি বা মোবাইল নম্বর"
+                className={`w-full px-4 py-3 rounded-md border outline-none transition-all text-lg ${
+                  error && !userId
+                    ? 'border-red-500 bg-red-50' 
+                    : 'border-gray-300 focus:border-[#1D4ED8] focus:ring-1 focus:ring-[#1D4ED8]'
+                }`}
+              />
+            </div>
+
+            <div className="relative">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="পাসওয়ার্ড"
+                className={`w-full px-4 py-3 rounded-md border outline-none transition-all text-lg ${
+                  error && !password
+                    ? 'border-red-500 bg-red-50' 
+                    : 'border-gray-300 focus:border-[#1D4ED8] focus:ring-1 focus:ring-[#1D4ED8]'
                 }`}
               />
             </div>
             
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold py-5 rounded-2xl shadow-xl shadow-rose-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-lg"
+              disabled={isSubmitting}
+              className="w-full bg-[#1D4ED8] hover:bg-[#1a44c2] text-white font-bold py-3 rounded-md transition-all text-xl"
             >
-              আনলক করো
-              <Heart className="w-5 h-5 fill-white" />
+              {isSubmitting ? 'লগইন হচ্ছে...' : 'লগ ইন'}
             </button>
+
+            <div className="text-center">
+              <button 
+                type="button"
+                onClick={onForgotPassword}
+                className="text-sm text-[#1D4ED8] hover:underline"
+              >
+                পাসওয়ার্ড ভুলে গেছেন?
+              </button>
+            </div>
+
+            <hr className="border-gray-200" />
+
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={onRegister}
+                className="bg-[#42B72A] hover:bg-[#36a420] text-white font-bold py-3 px-6 rounded-md transition-all text-lg inline-block"
+              >
+                নতুন অ্যাকাউন্ট তৈরি করুন
+              </button>
+            </div>
           </form>
-
-          <div className="mt-8 pt-6 border-t border-rose-50">
-            <p className="text-gray-400 text-sm mb-3">তোমার কি কোনো আইডি নেই?</p>
-            <button
-              onClick={onRegister}
-              className="text-rose-500 font-bold hover:text-rose-600 transition-colors flex items-center justify-center gap-2 mx-auto"
-            >
-              নতুন আইডি রেজিস্ট্রেশন করো
-              <Sparkles className="w-4 h-4" />
-            </button>
-          </div>
-
+          
           {error && (
-            <div className="mt-6 flex items-center justify-center gap-2 text-red-500 animate-bounce">
-              <span className="text-sm font-bold">ভুল আইডি। আবার চেষ্টা করো, প্রিয়!</span>
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm text-center">
+              ভুল আইডি বা পাসওয়ার্ড। আবার চেষ্টা করুন!
             </div>
           )}
         </div>
-
-        {/* Footer Text */}
-        <p className="mt-8 text-center text-rose-300 text-xs font-bold tracking-widest uppercase">
-          &copy; {new Date().getFullYear()} মিতালি - ভালোবাসার বন্ধন
+        
+        <p className="mt-6 text-sm text-center text-gray-600">
+          <b>একটি পেজ তৈরি করুন</b> কোনো সেলিব্রিটি, ব্র্যান্ড বা ব্যবসার জন্য।
         </p>
       </div>
-
-      <style>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          20% { transform: translateX(-8px); }
-          40% { transform: translateX(8px); }
-          60% { transform: translateX(-8px); }
-          80% { transform: translateX(8px); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.4; }
-          50% { transform: translateY(-100px) rotate(20deg); opacity: 0.8; }
-        }
-        .animate-shake {
-          animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-        }
-        .animate-float {
-          animation: float linear infinite;
-        }
-      `}</style>
     </div>
   );
 };

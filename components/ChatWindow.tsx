@@ -47,81 +47,87 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-md h-[600px] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border border-rose-100">
-        {/* Header */}
-        <div className="bg-rose-500 p-6 text-white flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full border-2 border-white/30 overflow-hidden bg-white/10 flex items-center justify-center">
-              {friendProfile?.profileImageUrl ? (
-                <img 
-                  src={friendProfile.profileImageUrl} 
-                  alt={friendId} 
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <User className="w-6 h-6" />
-              )}
-            </div>
-            <div>
-              <h3 className="font-bold">{friendId}</h3>
-              <p className="text-[10px] text-rose-100">Live Chat</p>
-            </div>
+    <div className="fixed bottom-0 right-4 z-[100] w-80 h-[450px] bg-white rounded-t-lg shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 p-2 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2 hover:bg-gray-100 p-1 rounded-lg cursor-pointer transition-colors flex-1">
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 relative">
+            {friendProfile?.profileImageUrl ? (
+              <img src={friendProfile.profileImageUrl} alt={friendId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                <User className="w-5 h-5 text-gray-500" />
+              </div>
+            )}
+            <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-white rounded-full"></div>
           </div>
-          <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-full transition-colors">
-            <X className="w-6 h-6" />
+          <div>
+            <h3 className="font-bold text-sm text-gray-900">{friendId}</h3>
+            <p className="text-[10px] text-green-500 font-medium">সক্রিয় আছেন</p>
+          </div>
+        </div>
+        <div className="flex gap-1">
+          <button className="p-1.5 hover:bg-gray-100 rounded-full text-[#1D4ED8]">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+          </button>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full text-[#1D4ED8]">
+            <X className="w-5 h-5" />
           </button>
         </div>
+      </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-rose-50/30">
-          {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-2">
-              <p className="italic text-sm">হাই বলো! চ্যাট শুরু করো...</p>
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-white scrollbar-thin scrollbar-thumb-gray-200">
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-2">
+            <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
+              <User className="w-8 h-8 text-gray-200" />
             </div>
-          ) : (
-            messages.map((msg) => (
+            <p className="text-xs font-medium">চ্যাট শুরু করুন</p>
+          </div>
+        ) : (
+          messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${msg.fromUserId === userId ? 'justify-end' : 'justify-start'}`}
+            >
               <div
-                key={msg.id}
-                className={`flex ${msg.fromUserId === userId ? 'justify-end' : 'justify-start'}`}
+                className={`max-w-[85%] p-2.5 px-3 rounded-2xl text-sm ${
+                  msg.fromUserId === userId
+                    ? 'bg-[#1D4ED8] text-white'
+                    : 'bg-[#F0F2F5] text-gray-900'
+                }`}
               >
-                <div
-                  className={`max-w-[80%] p-4 rounded-2xl text-sm shadow-sm ${
-                    msg.fromUserId === userId
-                      ? 'bg-rose-500 text-white rounded-tr-none'
-                      : 'bg-white text-gray-800 rounded-tl-none border border-rose-100'
-                  }`}
-                >
-                  <p>{msg.content}</p>
-                  <p className={`text-[8px] mt-1 ${msg.fromUserId === userId ? 'text-rose-100' : 'text-gray-400'}`}>
-                    {format(msg.createdAt, 'hh:mm a')}
-                  </p>
-                </div>
+                <p className="leading-tight">{msg.content}</p>
+                <p className={`text-[8px] mt-1 text-right opacity-70`}>
+                  {format(msg.createdAt, 'hh:mm a')}
+                </p>
               </div>
-            ))
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+            </div>
+          ))
+        )}
+        <div ref={messagesEndRef} />
+      </div>
 
-        {/* Input */}
-        <form onSubmit={handleSend} className="p-4 bg-white border-t border-rose-100 flex gap-2">
+      {/* Input */}
+      <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-100 flex gap-2 items-center">
+        <div className="flex-1 bg-[#F0F2F5] rounded-full flex items-center px-3">
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="মেসেজ লেখো..."
-            className="flex-1 px-4 py-3 rounded-xl border border-rose-100 focus:border-rose-400 outline-none text-sm transition-all"
+            placeholder="মেসেজ লিখুন..."
+            className="bg-transparent border-none outline-none flex-1 py-2 text-sm"
           />
-          <button
-            type="submit"
-            disabled={!inputText.trim()}
-            className="bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white p-3 rounded-xl transition-all shadow-lg shadow-rose-100"
-          >
-            <Send className="w-5 h-5" />
-          </button>
-        </form>
-      </div>
+        </div>
+        <button
+          type="submit"
+          disabled={!inputText.trim()}
+          className="text-[#1D4ED8] hover:bg-blue-50 p-2 rounded-full transition-all disabled:opacity-30"
+        >
+          <Send className="w-5 h-5" />
+        </button>
+      </form>
     </div>
   );
 };
