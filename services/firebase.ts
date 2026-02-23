@@ -1,7 +1,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, Timestamp, where, deleteDoc, getDocs } from 'firebase/firestore';
-import { Post, Reply, RegistrationRequest, FriendRequest } from '../types';
+import { Post, Reply, RegistrationRequest, FriendRequest, ChatMessage, Notification } from '../types';
 
 // These should be replaced with actual config from user later
 const firebaseConfig = {
@@ -25,6 +25,8 @@ export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 const POSTS_COLLECTION = 'posts';
 const REGISTRATION_COLLECTION = 'registration_requests';
 const FRIEND_REQUESTS_COLLECTION = 'friend_requests';
+const CHAT_MESSAGES_COLLECTION = 'chat_messages';
+const NOTIFICATIONS_COLLECTION = 'notifications';
 
 export const createPost = async (userId: string, content: string) => {
   try {
@@ -194,13 +196,103 @@ export const subscribeToIncomingFriendRequests = (userId: string, callback: (req
   });
 };
 
-export const respondToFriendRequest = async (requestId: string, status: 'accepted' | 'rejected') => {
+export const respondToFriendRequest = async (requestId: string, status: 'accepted' | 'rejected', fromUserId?: string, toUserId?: string) => {
   try {
     const requestRef = doc(db, FRIEND_REQUESTS_COLLECTION, requestId);
     await updateDoc(requestRef, { status });
+
+    if (status === 'accepted' && fromUserId && toUserId) {
+      await createNotification(fromUserId, toUserId, 'request_accepted', `${toUserId} তোমার ফ্রেন্ড রিকোয়েস্ট গ্রহণ করেছে!`);
+    }
   } catch (error) {
     console.error("Error responding to friend request:", error);
     throw error;
+  }
+};
+
+export const unfriend = async (userId: string, friendId: string) => {
+  try {
+    const q1 = query(collection(db, FRIEND_REQUESTS_COLLECTION), where('fromUserId', '==', userId), where('toUserId', '==', friendId), where('status', '==', 'accepted'));
+    const q2 = query(collection(db, FRIEND_REQUESTS_COLLECTION), where('fromUserId', '==', friendId), where('toUserId', '==', userId), where('status', '==', 'accepted'));
+    
+    const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+    const docsToDelete = [...snap1.docs, ...snap2.docs];
+    
+    for (const d of docsToDelete) {
+      await deleteDoc(doc(db, FRIEND_REQUESTS_COLLECTION, d.id));
+    }
+
+    await createNotification(friendId, userId, 'unfriended', `${userId} তোমাকে আনফ্রেন্ড করেছে।`);
+  } catch (error) {
+    console.error("Error unfriending:", error);
+    throw error;
+  }
+};
+
+export const sendChatMessage = async (fromUserId: string, toUserId: string, content: string) => {
+  try {
+    await addDoc(collection(db, CHAT_MESSAGES_COLLECTION), {
+      fromUserId,
+      toUserId,
+      content,
+      createdAt: Date.now()
+    });
+    // Optional: Add notification for new message
+  } catch (error) {
+    console.error("Error sending chat message:", error);
+    throw error;
+  }
+};
+
+export const subscribeToChat = (userId1: string, userId2: string, callback: (messages: ChatMessage[]) => void) => {
+  const q = query(collection(db, CHAT_MESSAGES_COLLECTION), orderBy('createdAt', 'asc'));
+  
+  return onSnapshot(q, (snapshot) => {
+    const messages = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage))
+      .filter(m => (m.fromUserId === userId1 && m.toUserId === userId2) || (m.fromUserId === userId2 && m.toUserId === userId1));
+    callback(messages);
+  });
+};
+
+export const createNotification = async (toUserId: string, fromUserId: string, type: Notification['type'], message: string) => {
+  try {
+    await addDoc(collection(db, NOTIFICATIONS_COLLECTION), {
+      toUserId,
+      fromUserId,
+      type,
+      message,
+      read: false,
+      createdAt: Date.now()
+    });
+  } catch (error) {
+    console.error("Error creating notification:", error);
+  }
+};
+
+export const subscribeToNotifications = (userId: string, callback: (notifications: Notification[]) => void) => {
+  const q = query(collection(db, NOTIFICATIONS_COLLECTION), where('toUserId', '==', userId), orderBy('createdAt', 'desc'));
+  
+  return onSnapshot(q, (snapshot) => {
+    const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
+    callback(notifications);
+  });
+};
+
+export const markNotificationAsRead = async (notificationId: string) => {
+  try {
+    const ref = doc(db, NOTIFICATIONS_COLLECTION, notificationId);
+    await updateDoc(ref, { read: true });
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+  }
+};
+
+export const deleteNotification = async (notificationId: string) => {
+  try {
+    await deleteDoc(doc(db, NOTIFICATIONS_COLLECTION, notificationId));
+  } catch (error) {
+    console.error("Error deleting notification:", error);
   }
 };
 

@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists } from '../services/firebase';
-import { Post, FriendRequest } from '../types';
-import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search } from 'lucide-react';
+import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification } from '../services/firebase';
+import { Post, FriendRequest, Notification } from '../types';
+import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import ChatWindow from './ChatWindow';
 
 interface BlogSystemProps {
   userId: string;
@@ -18,6 +19,9 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   const [isAddingFriend, setIsAddingFriend] = useState(false);
   const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
   const [friends, setFriends] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [activeChatFriend, setActiveChatFriend] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
@@ -25,10 +29,12 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
     const unsubFriends = subscribeToFriends(userId, setFriends);
     const unsubRequests = subscribeToIncomingFriendRequests(userId, setIncomingRequests);
+    const unsubNotifications = subscribeToNotifications(userId, setNotifications);
 
     return () => {
       unsubFriends();
       unsubRequests();
+      unsubNotifications();
     };
   }, [userId]);
 
@@ -85,11 +91,22 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
     }
   };
 
-  const handleRespondToRequest = async (requestId: string, status: 'accepted' | 'rejected') => {
+  const handleRespondToRequest = async (requestId: string, status: 'accepted' | 'rejected', fromUserId: string) => {
     try {
-      await respondToFriendRequest(requestId, status);
+      await respondToFriendRequest(requestId, status, fromUserId, userId);
     } catch (error) {
       alert('অ্যাকশন নিতে সমস্যা হয়েছে।');
+    }
+  };
+
+  const handleUnfriend = async (friendId: string) => {
+    if (window.confirm(`${friendId} কে আনফ্রেন্ড করতে চাও?`)) {
+      try {
+        await unfriend(userId, friendId);
+        alert('আনফ্রেন্ড করা হয়েছে।');
+      } catch (error) {
+        alert('আনফ্রেন্ড করতে সমস্যা হয়েছে।');
+      }
     }
   };
 
@@ -134,6 +151,17 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
         <div className="flex gap-2">
           <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative flex items-center gap-2 text-rose-600 hover:text-rose-700 font-medium transition-colors bg-white/50 px-4 py-2 rounded-full backdrop-blur-sm border border-rose-100"
+          >
+            <Bell className="w-4 h-4" />
+            {notifications.filter(n => !n.read).length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+                {notifications.filter(n => !n.read).length}
+              </span>
+            )}
+          </button>
+          <button 
             onClick={() => setIsAddingFriend(!isAddingFriend)}
             className="flex items-center gap-2 text-rose-600 hover:text-rose-700 font-medium transition-colors bg-white/50 px-4 py-2 rounded-full backdrop-blur-sm border border-rose-100"
           >
@@ -142,6 +170,44 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
           </button>
         </div>
       </div>
+
+      {showNotifications && (
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl p-6 border border-rose-100 mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-gray-800 flex items-center gap-2">
+              <Bell className="w-5 h-5 text-rose-500" />
+              নোটিফিকেশন
+            </h3>
+            <button onClick={() => setShowNotifications(false)} className="text-gray-400 hover:text-gray-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="max-h-60 overflow-y-auto space-y-3">
+            {notifications.length === 0 ? (
+              <p className="text-center text-gray-400 py-4 italic text-sm">কোনো নোটিফিকেশন নেই...</p>
+            ) : (
+              notifications.map((n) => (
+                <div 
+                  key={n.id} 
+                  className={`p-4 rounded-2xl border transition-all flex justify-between items-center ${n.read ? 'bg-gray-50 border-gray-100' : 'bg-rose-50 border-rose-100 shadow-sm'}`}
+                  onClick={() => markNotificationAsRead(n.id)}
+                >
+                  <div className="flex-1">
+                    <p className={`text-sm ${n.read ? 'text-gray-500' : 'text-gray-800 font-medium'}`}>{n.message}</p>
+                    <p className="text-[8px] text-gray-400 mt-1">{formatDistanceToNow(n.createdAt)} ago</p>
+                  </div>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
+                    className="text-gray-300 hover:text-red-400 p-1"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {isAddingFriend && (
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl p-6 border border-rose-100 mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
@@ -182,16 +248,53 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleRespondToRequest(req.id, 'accepted')}
+                    onClick={() => handleRespondToRequest(req.id, 'accepted', req.fromUserId)}
                     className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-all shadow-sm"
                   >
                     <Check className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleRespondToRequest(req.id, 'rejected')}
+                    onClick={() => handleRespondToRequest(req.id, 'rejected', req.fromUserId)}
                     className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-all shadow-sm"
                   >
                     <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {friends.length > 0 && (
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl p-6 border border-rose-100 mb-8">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5 text-rose-500" />
+            ফ্রেন্ডলিস্ট ({friends.length})
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {friends.map((friendId) => (
+              <div key={friendId} className="flex items-center justify-between bg-rose-50/30 p-4 rounded-2xl border border-rose-50 group hover:border-rose-200 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="bg-rose-100 p-2 rounded-full">
+                    <Users className="w-4 h-4 text-rose-500" />
+                  </div>
+                  <span className="font-bold text-gray-700">{friendId}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setActiveChatFriend(friendId)}
+                    className="p-2 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors shadow-sm"
+                    title="Chat"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleUnfriend(friendId)}
+                    className="p-2 bg-white text-gray-400 rounded-xl hover:text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100"
+                    title="Unfriend"
+                  >
+                    <UserMinus className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -281,6 +384,14 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
           )}
         </div>
       </div>
+      
+      {activeChatFriend && (
+        <ChatWindow 
+          userId={userId} 
+          friendId={activeChatFriend} 
+          onClose={() => setActiveChatFriend(null)} 
+        />
+      )}
     </div>
   );
 };

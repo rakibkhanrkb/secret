@@ -32,6 +32,24 @@ export interface FriendRequest {
   createdAt: number;
 }
 
+export interface ChatMessage {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  content: string;
+  createdAt: number;
+}
+
+export interface Notification {
+  id: string;
+  toUserId: string;
+  fromUserId: string;
+  type: 'request_accepted' | 'unfriended' | 'new_message';
+  message: string;
+  read: boolean;
+  createdAt: number;
+}
+
 export enum AppState {
   LOCKED = 'LOCKED',
   UNLOCKING = 'UNLOCKING',
