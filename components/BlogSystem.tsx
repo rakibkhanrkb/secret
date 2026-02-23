@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
-import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification } from '../services/firebase';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts } from '../services/firebase';
 import { Post, FriendRequest, Notification } from '../types';
-import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare } from 'lucide-react';
+import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import ChatWindow from './ChatWindow';
 
@@ -22,7 +22,10 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeChatFriend, setActiveChatFriend] = useState<string | null>(null);
+  const [unreadCounts, setUnreadCounts] = useState<{ [friendId: string]: number }>({});
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isFirebaseConfigured) return;
@@ -30,11 +33,13 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
     const unsubFriends = subscribeToFriends(userId, setFriends);
     const unsubRequests = subscribeToIncomingFriendRequests(userId, setIncomingRequests);
     const unsubNotifications = subscribeToNotifications(userId, setNotifications);
+    const unsubUnread = subscribeToUnreadMessageCounts(userId, setUnreadCounts);
 
     return () => {
       unsubFriends();
       unsubRequests();
       unsubNotifications();
+      unsubUnread();
     };
   }, [userId]);
 
@@ -58,12 +63,28 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
     setIsSubmitting(true);
     try {
-      await createPost(userId, message);
+      await createPost(userId, message, selectedImage || undefined);
       setMessage('');
+      setSelectedImage(null);
     } catch (error) {
       alert('মেসেজ পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করো।');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) { // 1MB limit for base64
+        alert('ছবিটি ১ মেগাবাইটের চেয়ে বড়। ছোট ছবি ব্যবহার করো।');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -284,10 +305,15 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setActiveChatFriend(friendId)}
-                    className="p-2 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors shadow-sm"
+                    className="relative p-2 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors shadow-sm"
                     title="Chat"
                   >
                     <MessageSquare className="w-4 h-4" />
+                    {unreadCounts[friendId] > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-white text-rose-500 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-md animate-bounce">
+                        {unreadCounts[friendId]}
+                      </span>
+                    )}
                   </button>
                   <button
                     onClick={() => handleUnfriend(friendId)}
@@ -310,21 +336,59 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4 mb-8">
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="এখানে তোমার মেসেজ লেখো..."
-            className="w-full px-4 py-3 rounded-2xl border-2 border-rose-100 focus:border-rose-400 outline-none transition-all min-h-[120px] resize-none"
-          />
+          <div className="relative">
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="এখানে তোমার মেসেজ লেখো..."
+              className="w-full px-4 py-3 rounded-2xl border-2 border-rose-100 focus:border-rose-400 outline-none transition-all min-h-[120px] resize-none"
+            />
+            <div className="absolute bottom-3 right-3 flex gap-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+                ref={fileInputRef}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className={`p-2 rounded-xl transition-all ${selectedImage ? 'bg-rose-100 text-rose-500' : 'bg-gray-100 text-gray-400 hover:bg-rose-50 hover:text-rose-400'}`}
+                title="ছবি যুক্ত করো"
+              >
+                <ImageIcon className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {selectedImage && (
+            <div className="relative inline-block">
+              <img 
+                src={selectedImage} 
+                alt="Selected" 
+                className="max-h-32 rounded-2xl border-2 border-rose-100 shadow-sm"
+                referrerPolicy="no-referrer"
+              />
+              <button
+                type="button"
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={isSubmitting || !message.trim()}
+            disabled={isSubmitting || (!message.trim() && !selectedImage)}
             className="w-full bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
           >
             {isSubmitting ? 'পাঠানো হচ্ছে...' : (
               <>
                 <Send className="w-5 h-5" />
-                মেসেজ পাঠাও
+                পোস্ট
               </>
             )}
           </button>
@@ -341,7 +405,18 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                   <span className="text-xs font-bold text-rose-400 uppercase tracking-wider">User: {post.userId}</span>
                   <span className="text-[10px] text-gray-400">{formatDistanceToNow(post.createdAt)} ago</span>
                 </div>
-                <p className="text-gray-800 leading-relaxed">{post.content}</p>
+                <p className="text-gray-800 leading-relaxed mb-3">{post.content}</p>
+                
+                {post.imageUrl && (
+                  <div className="mb-4 rounded-2xl overflow-hidden border border-rose-100 shadow-sm">
+                    <img 
+                      src={post.imageUrl} 
+                      alt="Post content" 
+                      className="w-full h-auto max-h-[400px] object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                )}
                 
                 {post.replies && post.replies.length > 0 && (
                   <div className="mt-4 space-y-3 pl-4 border-l-2 border-rose-200">

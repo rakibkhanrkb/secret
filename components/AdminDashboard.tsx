@@ -177,6 +177,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                     {post.content}
                   </p>
 
+                  {post.imageUrl && (
+                    <div className="mb-6 rounded-2xl overflow-hidden border border-rose-100 shadow-sm">
+                      <img 
+                        src={post.imageUrl} 
+                        alt="Post content" 
+                        className="w-full h-auto max-h-[300px] object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  )}
+
                   {/* Replies Section */}
                   {post.replies && post.replies.length > 0 && (
                     <div className="mb-6 space-y-3">

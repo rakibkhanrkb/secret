@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatMessage } from '../types';
-import { sendChatMessage, subscribeToChat } from '../services/firebase';
+import { sendChatMessage, subscribeToChat, markMessagesAsRead } from '../services/firebase';
 import { Send, X, User } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -18,12 +18,16 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
 
   useEffect(() => {
     const unsubscribe = subscribeToChat(userId, friendId, setMessages);
+    markMessagesAsRead(userId, friendId);
     return () => unsubscribe();
   }, [userId, friendId]);
 
   useEffect(() => {
+    if (messages.length > 0) {
+      markMessagesAsRead(userId, friendId);
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, userId, friendId]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();

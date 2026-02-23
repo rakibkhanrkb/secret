@@ -28,11 +28,12 @@ const FRIEND_REQUESTS_COLLECTION = 'friend_requests';
 const CHAT_MESSAGES_COLLECTION = 'chat_messages';
 const NOTIFICATIONS_COLLECTION = 'notifications';
 
-export const createPost = async (userId: string, content: string) => {
+export const createPost = async (userId: string, content: string, imageUrl?: string) => {
   try {
     await addDoc(collection(db, POSTS_COLLECTION), {
       userId,
       content,
+      imageUrl: imageUrl || null,
       createdAt: Date.now(),
       replies: []
     });
@@ -235,6 +236,7 @@ export const sendChatMessage = async (fromUserId: string, toUserId: string, cont
       fromUserId,
       toUserId,
       content,
+      read: false,
       createdAt: Date.now()
     });
     // Optional: Add notification for new message
@@ -242,6 +244,39 @@ export const sendChatMessage = async (fromUserId: string, toUserId: string, cont
     console.error("Error sending chat message:", error);
     throw error;
   }
+};
+
+export const markMessagesAsRead = async (userId: string, friendId: string) => {
+  try {
+    const q = query(
+      collection(db, CHAT_MESSAGES_COLLECTION),
+      where('toUserId', '==', userId),
+      where('fromUserId', '==', friendId),
+      where('read', '==', false)
+    );
+    const snapshot = await getDocs(q);
+    const updatePromises = snapshot.docs.map(d => updateDoc(doc(db, CHAT_MESSAGES_COLLECTION, d.id), { read: true }));
+    await Promise.all(updatePromises);
+  } catch (error) {
+    console.error("Error marking messages as read:", error);
+  }
+};
+
+export const subscribeToUnreadMessageCounts = (userId: string, callback: (counts: { [friendId: string]: number }) => void) => {
+  const q = query(
+    collection(db, CHAT_MESSAGES_COLLECTION),
+    where('toUserId', '==', userId),
+    where('read', '==', false)
+  );
+  
+  return onSnapshot(q, (snapshot) => {
+    const counts: { [friendId: string]: number } = {};
+    snapshot.docs.forEach(doc => {
+      const msg = doc.data() as ChatMessage;
+      counts[msg.fromUserId] = (counts[msg.fromUserId] || 0) + 1;
+    });
+    callback(counts);
+  });
 };
 
 export const subscribeToChat = (userId1: string, userId2: string, callback: (messages: ChatMessage[]) => void) => {

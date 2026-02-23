@@ -3,6 +3,7 @@ export interface Post {
   id: string;
   userId: string;
   content: string;
+  imageUrl?: string;
   createdAt: number;
   replies?: Reply[];
 }
@@ -37,6 +38,7 @@ export interface ChatMessage {
   fromUserId: string;
   toUserId: string;
   content: string;
+  read: boolean;
   createdAt: number;
 }
 
