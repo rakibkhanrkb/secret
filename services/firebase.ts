@@ -416,29 +416,19 @@ export const registerUser = async (userId: string, password: string, mobile: str
   }
 };
 
-export const loginUser = async (identifier: string, password: string): Promise<boolean> => {
+export const loginUser = async (userId: string, password: string): Promise<boolean> => {
   // Hardcoded Admin check
-  if (identifier === 'rkb@93' && password === 'rkb@80') return true;
+  if (userId === 'rkb@93' && password === 'rkb@80') return true;
   // User requested sumi52 password
-  if (identifier === 'sumi52' && password === 'sumi52') return true;
+  if (userId === 'sumi52' && password === 'sumi52') return true;
 
-  // Check by User ID
-  const qId = query(
+  const q = query(
     collection(db, USER_ACCOUNTS_COLLECTION), 
-    where('userId', '==', identifier),
+    where('userId', '==', userId),
     where('password', '==', password)
   );
-  const snapshotId = await getDocs(qId);
-  if (!snapshotId.empty) return true;
-
-  // Check by Mobile Number
-  const qMobile = query(
-    collection(db, USER_ACCOUNTS_COLLECTION), 
-    where('mobile', '==', identifier),
-    where('password', '==', password)
-  );
-  const snapshotMobile = await getDocs(qMobile);
-  return !snapshotMobile.empty;
+  const snapshot = await getDocs(q);
+  return !snapshot.empty;
 };
 
 export const resetUserPassword = async (mobile: string, newPassword: string): Promise<boolean> => {
