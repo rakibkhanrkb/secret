@@ -8,6 +8,7 @@ interface PasswordResetProps {
 
 const PasswordReset: React.FC<PasswordResetProps> = ({ onBack }) => {
   const [formData, setFormData] = useState({
+    userId: '',
     mobile: '',
     newPassword: '',
     confirmPassword: ''
@@ -17,9 +18,9 @@ const PasswordReset: React.FC<PasswordResetProps> = ({ onBack }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { mobile, newPassword, confirmPassword } = formData;
+    const { userId, mobile, newPassword, confirmPassword } = formData;
 
-    if (!mobile || !newPassword || !confirmPassword) {
+    if (!userId || !mobile || !newPassword || !confirmPassword) {
       alert('সবগুলো ঘর পূরণ করো!');
       return;
     }
@@ -36,11 +37,11 @@ const PasswordReset: React.FC<PasswordResetProps> = ({ onBack }) => {
 
     setIsSubmitting(true);
     try {
-      const success = await resetUserPassword(mobile, newPassword);
+      const success = await resetUserPassword(userId, mobile, newPassword);
       if (success) {
         setIsSuccess(true);
       } else {
-        alert('এই মোবাইল নাম্বারটি খুঁজে পাওয়া যায়নি।');
+        alert('ইউজার আইডি বা মোবাইল নাম্বারটি ভুল।');
       }
     } catch (error) {
       alert('পাসওয়ার্ড রিসেট করতে সমস্যা হয়েছে। আবার চেষ্টা করো।');
@@ -76,7 +77,7 @@ const PasswordReset: React.FC<PasswordResetProps> = ({ onBack }) => {
       <div className="w-full max-w-[432px] bg-white p-4 rounded-lg shadow-lg border border-gray-200">
         <div className="border-b border-gray-200 pb-4 mb-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-xl font-bold text-gray-900">আপনার অ্যাকাউন্ট খুঁজুন</h1>
+            <h1 className="text-xl font-bold text-gray-900">আপনার অ্যাকাউন্ট এর পাসওয়ার্ড রিসেট করুন</h1>
             <button onClick={onBack} className="p-1 hover:bg-gray-100 rounded-full">
               <X className="w-6 h-6 text-gray-500" />
             </button>
@@ -84,8 +85,16 @@ const PasswordReset: React.FC<PasswordResetProps> = ({ onBack }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <p className="text-sm text-gray-700">আপনার পাসওয়ার্ড রিসেট করতে আপনার মোবাইল নাম্বার দিন।</p>
+          <p className="text-sm text-gray-700">আপনার পাসওয়ার্ড রিসেট করতে আপনার ইউজার আইডি এবং মোবাইল নাম্বার দিন।</p>
           
+          <input
+            type="text"
+            value={formData.userId}
+            onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+            placeholder="ইউজার আইডি"
+            className="w-full px-4 py-3 bg-white rounded-md border border-gray-300 outline-none focus:ring-1 focus:ring-[#1D4ED8] transition-all"
+          />
+
           <input
             type="tel"
             value={formData.mobile}
@@ -123,7 +132,7 @@ const PasswordReset: React.FC<PasswordResetProps> = ({ onBack }) => {
               disabled={isSubmitting}
               className="bg-[#1D4ED8] hover:bg-[#1a44c2] text-white font-bold px-4 py-2 rounded-md transition-all"
             >
-              {isSubmitting ? 'প্রসেসিং...' : 'অনুসন্ধান করুন'}
+              {isSubmitting ? 'প্রসেসিং...' : 'সেট করুন'}
             </button>
           </div>
         </form>

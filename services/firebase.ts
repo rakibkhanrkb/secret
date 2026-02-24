@@ -1,6 +1,6 @@
 
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, Timestamp, where, deleteDoc, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, Timestamp, where, deleteDoc, getDocs, deleteField } from 'firebase/firestore';
 import { Post, Reply, RegistrationRequest, FriendRequest, ChatMessage, Notification, UserProfile, UserAccount } from '../types';
 
 // These should be replaced with actual config from user later
@@ -100,6 +100,30 @@ export const addReply = async (postId: string, content: string, isAdmin: boolean
     });
   } catch (error) {
     console.error("Error adding reply:", error);
+    throw error;
+  }
+};
+
+export const toggleReaction = async (postId: string, userId: string, reactionType: string) => {
+  try {
+    const postRef = doc(db, POSTS_COLLECTION, postId);
+    await updateDoc(postRef, {
+      [`reactions.${userId}`]: reactionType
+    });
+  } catch (error) {
+    console.error("Error toggling reaction:", error);
+    throw error;
+  }
+};
+
+export const removeReaction = async (postId: string, userId: string) => {
+  try {
+    const postRef = doc(db, POSTS_COLLECTION, postId);
+    await updateDoc(postRef, {
+      [`reactions.${userId}`]: deleteField()
+    });
+  } catch (error) {
+    console.error("Error removing reaction:", error);
     throw error;
   }
 };
@@ -431,10 +455,11 @@ export const loginUser = async (userId: string, password: string): Promise<boole
   return !snapshot.empty;
 };
 
-export const resetUserPassword = async (mobile: string, newPassword: string): Promise<boolean> => {
+export const resetUserPassword = async (userId: string, mobile: string, newPassword: string): Promise<boolean> => {
   try {
     const q = query(
       collection(db, USER_ACCOUNTS_COLLECTION), 
+      where('userId', '==', userId),
       where('mobile', '==', mobile)
     );
     const snapshot = await getDocs(q);

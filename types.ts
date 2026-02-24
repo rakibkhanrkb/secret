@@ -6,6 +6,7 @@ export interface Post {
   imageUrl?: string;
   createdAt: number;
   replies?: Reply[];
+  reactions?: { [userId: string]: string };
 }
 
 export interface Reply {

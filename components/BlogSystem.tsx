@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles } from '../services/firebase';
+import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles, toggleReaction, removeReaction } from '../services/firebase';
 import { Post, FriendRequest, Notification, UserProfile } from '../types';
 import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -28,6 +28,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   const [allProfiles, setAllProfiles] = useState<{ [userId: string]: UserProfile }>({});
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [hoveredPostId, setHoveredPostId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const profileInputRef = useRef<HTMLInputElement>(null);
@@ -174,6 +175,62 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       alert('রিপ্লাই দিতে সমস্যা হয়েছে।');
     }
   };
+
+  const handleToggleReaction = async (postId: string, reactionType: string) => {
+    try {
+      const post = posts.find(p => p.id === postId);
+      const currentReaction = post?.reactions?.[userId];
+
+      if (currentReaction === reactionType) {
+        await removeReaction(postId, userId);
+      } else {
+        await toggleReaction(postId, userId, reactionType);
+      }
+    } catch (error) {
+      console.error("Error toggling reaction:", error);
+    }
+  };
+
+  const getReactionEmoji = (type: string) => {
+    switch (type) {
+      case 'like': return '👍';
+      case 'love': return '❤️';
+      case 'haha': return '😂';
+      case 'sad': return '😢';
+      case 'angry': return '😡';
+      default: return '👍';
+    }
+  };
+
+  const getReactionLabel = (type: string) => {
+    switch (type) {
+      case 'like': return 'লাইক';
+      case 'love': return 'লাভ';
+      case 'haha': return 'হাসি';
+      case 'sad': return 'কান্না';
+      case 'angry': return 'রাগ';
+      default: return 'লাইক';
+    }
+  };
+
+  const getReactionColor = (type: string) => {
+    switch (type) {
+      case 'like': return 'text-[#1D4ED8]';
+      case 'love': return 'text-red-500';
+      case 'haha': return 'text-yellow-500';
+      case 'sad': return 'text-yellow-500';
+      case 'angry': return 'text-orange-600';
+      default: return 'text-gray-600';
+    }
+  };
+
+  const reactionOptions = [
+    { type: 'like', emoji: '👍', label: 'লাইক' },
+    { type: 'love', emoji: '❤️', label: 'লাভ' },
+    { type: 'haha', emoji: '😂', label: 'হাসি' },
+    { type: 'sad', emoji: '😢', label: 'কান্না' },
+    { type: 'angry', emoji: '😡', label: 'রাগ' },
+  ];
 
   if (!isFirebaseConfigured) {
     return (
@@ -384,10 +441,14 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                   {/* Post Stats */}
                   <div className="px-4 py-2 flex justify-between items-center text-sm text-gray-500">
                     <div className="flex items-center gap-1">
-                      <div className="bg-[#1D4ED8] p-1 rounded-full">
-                        <ThumbsUp className="w-3 h-3 text-white fill-white" />
-                      </div>
-                      <span>১২</span>
+                      {post.reactions && Object.keys(post.reactions).length > 0 && (
+                        <div className="flex -space-x-1 items-center">
+                          {Array.from(new Set(Object.values(post.reactions))).slice(0, 3).map((type, idx) => (
+                            <span key={idx} className="text-xs">{getReactionEmoji(type as string)}</span>
+                          ))}
+                          <span className="ml-1 text-gray-500">{Object.keys(post.reactions).length}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-3">
                       <span>{post.replies?.length || 0} টি কমেন্ট</span>
@@ -398,11 +459,45 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                   <hr className="mx-4 border-gray-100" />
 
                   {/* Post Actions */}
-                  <div className="px-4 py-1 flex justify-between">
-                    <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 font-semibold">
-                      <ThumbsUp className="w-5 h-5" />
-                      লাইক
-                    </button>
+                  <div className="px-4 py-1 flex justify-between relative">
+                    <div 
+                      className="flex-1 relative"
+                      onMouseEnter={() => setHoveredPostId(post.id)}
+                      onMouseLeave={() => setHoveredPostId(null)}
+                    >
+                      {hoveredPostId === post.id && (
+                        <div className="absolute bottom-full left-0 mb-2 bg-white shadow-xl border border-gray-200 rounded-full p-1 flex gap-1 animate-in fade-in slide-in-from-bottom-2 duration-200 z-10">
+                          {reactionOptions.map((opt) => (
+                            <button
+                              key={opt.type}
+                              onClick={() => {
+                                handleToggleReaction(post.id, opt.type);
+                                setHoveredPostId(null);
+                              }}
+                              className="hover:scale-125 transition-transform p-1.5 text-xl"
+                              title={opt.label}
+                            >
+                              {opt.emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <button 
+                        onClick={() => handleToggleReaction(post.id, 'like')}
+                        className={`w-full flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors font-semibold ${
+                          post.reactions?.[userId] 
+                            ? getReactionColor(post.reactions[userId] as string) 
+                            : 'text-gray-600'
+                        }`}
+                      >
+                        {post.reactions?.[userId] ? (
+                          <span className="text-xl">{getReactionEmoji(post.reactions[userId] as string)}</span>
+                        ) : (
+                          <ThumbsUp className="w-5 h-5" />
+                        )}
+                        {post.reactions?.[userId] ? getReactionLabel(post.reactions[userId] as string) : 'লাইক'}
+                      </button>
+                    </div>
                     <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 font-semibold">
                       <MessageSquare className="w-5 h-5" />
                       কমেন্ট
