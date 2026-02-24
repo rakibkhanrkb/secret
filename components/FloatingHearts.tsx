@@ -19,7 +19,7 @@ const FloatingHearts: React.FC = () => {
       {hearts.map((heart) => (
         <div
           key={heart.id}
-          className="absolute bottom-[-50px] animate-bounce text-rose-300 opacity-60"
+          className="absolute bottom-[-50px] animate-bounce text-rose-300 opacity-20"
           style={{
             left: heart.left,
             animationDuration: `${Math.random() * 10 + 15}s`,
@@ -35,7 +35,7 @@ const FloatingHearts: React.FC = () => {
       ))}
       <style>{`
         @keyframes floatUp {
-          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+          0% { transform: translateY(0) rotate(0deg); opacity: 0.3; }
           100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
         }
       `}</style>

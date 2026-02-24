@@ -779,8 +779,49 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
         {/* Right Sidebar - Friends & Contacts */}
         <aside className="hidden lg:block w-72 space-y-4">
+          {incomingRequests.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center px-2">
+                <h3 className="font-bold text-gray-500 uppercase text-xs tracking-wider">বর্তমান ফ্রেন্ড রিকোয়েস্ট</h3>
+              </div>
+              <div className="space-y-3 px-2">
+                {incomingRequests.map((req) => (
+                  <div key={req.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
+                        {allProfiles[req.fromUserId]?.profileImageUrl ? (
+                          <img src={allProfiles[req.fromUserId].profileImageUrl} alt={req.fromUserId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                            <User className="w-6 h-6 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      <span className="font-bold text-sm text-gray-800 truncate">{req.fromUserId}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => respondToFriendRequest(req.id, 'accepted', req.fromUserId, req.toUserId)}
+                        className="flex-1 bg-[#1D4ED8] text-white py-1.5 rounded-md text-xs font-bold hover:bg-[#1a44c2] transition-colors"
+                      >
+                        গ্রহণ
+                      </button>
+                      <button 
+                        onClick={() => respondToFriendRequest(req.id, 'rejected', req.fromUserId, req.toUserId)}
+                        className="flex-1 bg-gray-200 text-gray-700 py-1.5 rounded-md text-xs font-bold hover:bg-gray-300 transition-colors"
+                      >
+                        বাতিল
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <hr className="border-gray-200 mx-2" />
+            </div>
+          )}
+
           <div className="flex justify-between items-center px-2">
-            <h3 className="font-bold text-gray-500">আপনার বন্ধুরা</h3>
+            <h3 className="font-bold text-gray-500 uppercase text-xs tracking-wider">আপনার বন্ধুরা</h3>
             <div className="flex gap-2">
               <Search className="w-4 h-4 text-gray-500 cursor-pointer" />
               <MoreHorizontal className="w-4 h-4 text-gray-500 cursor-pointer" />
@@ -808,11 +849,23 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                     <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
                   </div>
                   <span className="font-semibold text-gray-800 flex-1">{friendId}</span>
-                  {unreadCounts[friendId] > 0 && (
-                    <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                      {unreadCounts[friendId]}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {unreadCounts[friendId] > 0 && (
+                      <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full mr-1">
+                        {unreadCounts[friendId]}
+                      </span>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUnfriend(friendId);
+                      }}
+                      className="p-1.5 hover:bg-gray-300 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+                      title="আনফ্রেন্ড করুন"
+                    >
+                      <UserMinus className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))
             )}
@@ -1060,7 +1113,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                             onClick={() => respondToFriendRequest(req.id, 'accepted', req.fromUserId, req.toUserId)}
                             className="bg-[#1D4ED8] text-white px-4 py-1.5 rounded-md text-sm font-bold"
                           >
-                            কবুল
+                            গ্রহণ
                           </button>
                           <button 
                             onClick={() => respondToFriendRequest(req.id, 'rejected', req.fromUserId, req.toUserId)}

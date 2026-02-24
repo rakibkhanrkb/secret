@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import LockScreen from './components/LockScreen';
 import DecoyScreen from './components/DecoyScreen';
 import FloatingHearts from './components/FloatingHearts';
@@ -100,9 +101,13 @@ const App: React.FC = () => {
 
       {appState === AppState.UNLOCKING && (
         <div className="min-h-screen flex items-center justify-center bg-rose-50">
-          <div className="text-center space-y-4">
-            <div className="text-6xl animate-ping">❤️</div>
-            <h2 className="text-2xl font-serif text-rose-500 animate-pulse">সারপ্রাইজটি আনলক হচ্ছে...</h2>
+          <div className="text-center space-y-6">
+            <div className="relative">
+              <div className="text-6xl animate-ping opacity-20">❤️</div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2 className="w-12 h-12 text-rose-500 animate-spin" />
+              </div>
+            </div>
           </div>
         </div>
       )}
