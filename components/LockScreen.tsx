@@ -133,7 +133,7 @@ const LockScreen: React.FC<LockScreenProps> = ({ onUnlock, onDecoy, onRegister, 
         </div>
         
         <p className="mt-6 text-sm text-center text-gray-600">
-          <b>একটি পেজ তৈরি করুন</b> কোনো সেলিব্রিটি, ব্র্যান্ড বা ব্যবসার জন্য।
+          <b>| ভালবাসার বন্ধন | প্রিয়জনকে যুক্ত করুন | সীমাহীন উপভোগ করুন |</b>
         </p>
       </div>
     </div>

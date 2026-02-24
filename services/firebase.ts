@@ -256,12 +256,13 @@ export const unfriend = async (userId: string, friendId: string) => {
   }
 };
 
-export const sendChatMessage = async (fromUserId: string, toUserId: string, content: string) => {
+export const sendChatMessage = async (fromUserId: string, toUserId: string, content: string, imageUrl?: string) => {
   try {
     await addDoc(collection(db, CHAT_MESSAGES_COLLECTION), {
       fromUserId,
       toUserId,
       content,
+      imageUrl: imageUrl || null,
       read: false,
       createdAt: Date.now()
     });
@@ -446,14 +447,12 @@ export const registerUser = async (userId: string, password: string, mobile: str
   }
 };
 
-export const getAllUserIds = async (): Promise<string[]> => {
-  try {
-    const snapshot = await getDocs(collection(db, USER_ACCOUNTS_COLLECTION));
-    return snapshot.docs.map(doc => doc.data().userId);
-  } catch (error) {
-    console.error("Error getting all user ids:", error);
-    return [];
-  }
+export const subscribeToAllUserIds = (callback: (userIds: string[]) => void) => {
+  const q = query(collection(db, USER_ACCOUNTS_COLLECTION));
+  return onSnapshot(q, (snapshot) => {
+    const ids = snapshot.docs.map(doc => doc.data().userId);
+    callback(ids);
+  });
 };
 
 export const loginUser = async (userId: string, password: string): Promise<boolean> => {

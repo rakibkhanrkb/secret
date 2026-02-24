@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LockScreen from './components/LockScreen';
 import DecoyScreen from './components/DecoyScreen';
 import FloatingHearts from './components/FloatingHearts';
@@ -12,17 +12,35 @@ import { AppState } from './types';
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.LOCKED);
   const [userId, setUserId] = useState<string>('');
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
+    const savedUserId = localStorage.getItem('mitali_userId');
+    const savedAppState = localStorage.getItem('mitali_appState');
+    
+    if (savedUserId && savedAppState) {
+      setUserId(savedUserId);
+      setAppState(savedAppState as AppState);
+    }
+    setIsInitializing(false);
+  }, []);
 
   const handleUnlock = (id: string, isAdmin: boolean) => {
     setUserId(id);
     setAppState(AppState.UNLOCKING);
+    const finalState = isAdmin ? AppState.ADMIN_DASHBOARD : AppState.UNLOCKED;
+    
     setTimeout(() => {
-      setAppState(isAdmin ? AppState.ADMIN_DASHBOARD : AppState.UNLOCKED);
+      setAppState(finalState);
+      localStorage.setItem('mitali_userId', id);
+      localStorage.setItem('mitali_appState', finalState);
     }, 800);
   };
 
   const handleBackToLock = () => {
     setAppState(AppState.LOCKED);
+    localStorage.removeItem('mitali_userId');
+    localStorage.removeItem('mitali_appState');
   };
 
   const handleGoToRegistration = () => {
@@ -32,6 +50,14 @@ const App: React.FC = () => {
   const handleGoToPasswordReset = () => {
     setAppState(AppState.PASSWORD_RESET);
   };
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-rose-50">
+        <div className="text-6xl animate-pulse">❤️</div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen transition-all duration-1000">

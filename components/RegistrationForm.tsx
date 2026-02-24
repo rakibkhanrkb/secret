@@ -96,7 +96,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onBack }) => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">সাইন আপ</h1>
-              <p className="text-gray-600">এটি দ্রুত এবং সহজ।</p>
+              <p className="text-gray-600"> ইংরেজিতে নিজের মত করে একটি ইউজার আইডি দাও যা তোমার নাম হিসেবে ব্যবহার হবে। [ইউজার আইডি পরিবর্তনযোগ্য নয়]</p>
             </div>
             <button onClick={onBack} className="p-1 hover:bg-gray-100 rounded-full">
               <X className="w-6 h-6 text-gray-500" />
@@ -113,7 +113,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onBack }) => {
                 setFormData({ ...formData, userId: e.target.value });
                 setUserIdError(false);
               }}
-              placeholder="ইউজার আইডি"
+              placeholder="ইউজার আইডি [যেমন: rkb80]"
               className={`w-full px-4 py-3 bg-[#F5F6F7] rounded-md border outline-none focus:ring-1 focus:ring-[#1D4ED8] transition-all ${
                 userIdError ? 'border-red-500' : 'border-gray-300'
               }`}
