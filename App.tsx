@@ -82,7 +82,7 @@ const App: React.FC = () => {
       )}
 
       {appState === AppState.UNLOCKED && (
-        <div className="animate-in slide-in-from-bottom duration-1000 ease-out fill-mode-forwards pt-20">
+        <div className="animate-in slide-in-from-bottom duration-1000 ease-out fill-mode-forwards">
           <BlogSystem userId={userId} onBack={handleBackToLock} />
         </div>
       )}

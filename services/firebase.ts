@@ -434,9 +434,25 @@ export const registerUser = async (userId: string, password: string, mobile: str
       mobile,
       createdAt: Date.now()
     });
+    // Create an initial profile
+    await addDoc(collection(db, USER_PROFILES_COLLECTION), {
+      userId,
+      profileImageUrl: null,
+      updatedAt: Date.now()
+    });
   } catch (error) {
     console.error("Error registering user:", error);
     throw error;
+  }
+};
+
+export const getAllUserIds = async (): Promise<string[]> => {
+  try {
+    const snapshot = await getDocs(collection(db, USER_ACCOUNTS_COLLECTION));
+    return snapshot.docs.map(doc => doc.data().userId);
+  } catch (error) {
+    console.error("Error getting all user ids:", error);
+    return [];
   }
 };
 

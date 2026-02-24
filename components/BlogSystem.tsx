@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles, toggleReaction, removeReaction } from '../services/firebase';
+import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles, toggleReaction, removeReaction, getAllUserIds } from '../services/firebase';
 import { Post, FriendRequest, Notification, UserProfile } from '../types';
 import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -16,6 +16,8 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [friendIdInput, setFriendIdInput] = useState('');
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [allUserIds, setAllUserIds] = useState<string[]>([]);
   const [isAddingFriend, setIsAddingFriend] = useState(false);
   const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
   const [friends, setFriends] = useState<string[]>([]);
@@ -42,6 +44,12 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
     const unsubUnread = subscribeToUnreadMessageCounts(userId, setUnreadCounts);
     const unsubProfile = subscribeToUserProfile(userId, setUserProfile);
     const unsubAllProfiles = subscribeToAllUserProfiles(setAllProfiles);
+
+    const fetchAllUserIds = async () => {
+      const ids = await getAllUserIds();
+      setAllUserIds(ids);
+    };
+    fetchAllUserIds();
 
     return () => {
       unsubFriends();
@@ -121,6 +129,19 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
     }
   };
 
+  useEffect(() => {
+    if (friendIdInput.trim().length >= 1) {
+      const filtered = allUserIds.filter(id => 
+        id.toLowerCase().includes(friendIdInput.toLowerCase()) && 
+        id !== userId && 
+        !friends.includes(id)
+      );
+      setSearchResults(filtered);
+    } else {
+      setSearchResults([]);
+    }
+  }, [friendIdInput, allUserIds, userId, friends]);
+
   const handleSendFriendRequest = async () => {
     const targetId = friendIdInput.trim();
     if (!targetId) return;
@@ -161,6 +182,16 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       } catch (error) {
         alert('আনফ্রেন্ড করতে সমস্যা হয়েছে।');
       }
+    }
+  };
+
+  const handleSendFriendRequestTo = async (toId: string) => {
+    try {
+      await sendFriendRequest(userId, toId);
+      alert('ফ্রেন্ড রিকোয়েস্ট পাঠানো হয়েছে!');
+      setFriendIdInput('');
+    } catch (error) {
+      alert('রিকোয়েস্ট পাঠাতে সমস্যা হয়েছে।');
     }
   };
 
@@ -466,20 +497,22 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                       onMouseLeave={() => setHoveredPostId(null)}
                     >
                       {hoveredPostId === post.id && (
-                        <div className="absolute bottom-full left-0 mb-2 bg-white shadow-xl border border-gray-200 rounded-full p-1 flex gap-1 animate-in fade-in slide-in-from-bottom-2 duration-200 z-10">
-                          {reactionOptions.map((opt) => (
-                            <button
-                              key={opt.type}
-                              onClick={() => {
-                                handleToggleReaction(post.id, opt.type);
-                                setHoveredPostId(null);
-                              }}
-                              className="hover:scale-125 transition-transform p-1.5 text-xl"
-                              title={opt.label}
-                            >
-                              {opt.emoji}
-                            </button>
-                          ))}
+                        <div className="absolute bottom-full left-0 pb-2 z-10">
+                          <div className="bg-white shadow-xl border border-gray-200 rounded-full p-1 flex gap-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                            {reactionOptions.map((opt) => (
+                              <button
+                                key={opt.type}
+                                onClick={() => {
+                                  handleToggleReaction(post.id, opt.type);
+                                  setHoveredPostId(null);
+                                }}
+                                className="hover:scale-125 transition-transform p-1.5 text-xl"
+                                title={opt.label}
+                              >
+                                {opt.emoji}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
                       <button 
@@ -673,11 +706,43 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                   className="w-full bg-gray-100 pl-10 pr-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-[#1D4ED8]"
                 />
               </div>
+
+              {searchResults.length > 0 && (
+                <div className="max-h-60 overflow-y-auto border border-gray-100 rounded-lg">
+                  {searchResults.map((resId) => (
+                    <div key={resId} className="flex items-center justify-between p-3 hover:bg-gray-50 border-b border-gray-50 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
+                          {allProfiles[resId]?.profileImageUrl ? (
+                            <img src={allProfiles[resId].profileImageUrl} alt={resId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                              <User className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                        <span className="font-bold text-gray-800">{resId}</span>
+                      </div>
+                      <button 
+                        onClick={() => handleSendFriendRequestTo(resId)}
+                        className="bg-[#1D4ED8] text-white px-3 py-1.5 rounded-md text-sm font-bold hover:bg-[#1a44c2]"
+                      >
+                        রিকোয়েস্ট
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {friendIdInput && searchResults.length === 0 && (
+                <p className="text-center text-gray-500 py-2">কোনো ইউজার পাওয়া যায়নি</p>
+              )}
+
               <button 
                 onClick={handleSendFriendRequest}
                 className="w-full bg-[#1D4ED8] hover:bg-[#1a44c2] text-white font-bold py-3 rounded-lg transition-all"
               >
-                ফ্রেন্ড রিকোয়েস্ট পাঠান
+                সরাসরি রিকোয়েস্ট পাঠান
               </button>
 
               {incomingRequests.length > 0 && (
