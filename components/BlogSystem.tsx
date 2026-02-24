@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles, toggleReaction, removeReaction, subscribeToAllUserIds } from '../services/firebase';
+import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, subscribeToSentFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles, toggleReaction, removeReaction, subscribeToAllUserIds } from '../services/firebase';
 import { Post, FriendRequest, Notification, UserProfile } from '../types';
 import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -24,6 +24,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   const [allUserIds, setAllUserIds] = useState<string[]>([]);
   const [isAddingFriend, setIsAddingFriend] = useState(false);
   const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
+  const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
   const [friends, setFriends] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -51,6 +52,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
     const unsubFriends = subscribeToFriends(userId, setFriends);
     const unsubRequests = subscribeToIncomingFriendRequests(userId, setIncomingRequests);
+    const unsubSentRequests = subscribeToSentFriendRequests(userId, setSentRequests);
     const unsubNotifications = subscribeToNotifications(userId, setNotifications);
     const unsubUnread = subscribeToUnreadMessageCounts(userId, setUnreadCounts);
     const unsubProfile = subscribeToUserProfile(userId, setUserProfile);
@@ -69,6 +71,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
     return () => {
       unsubFriends();
       unsubRequests();
+      unsubSentRequests();
       unsubNotifications();
       unsubUnread();
       unsubProfile();
@@ -380,9 +383,10 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                       </div>
                       <button 
                         onClick={() => handleSendFriendRequestTo(resId)}
-                        className="bg-[#1D4ED8] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#1a44c2] transition-colors"
+                        disabled={sentRequests.some(r => r.toUserId === resId)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${sentRequests.some(r => r.toUserId === resId) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-[#1D4ED8] text-white hover:bg-[#1a44c2]'}`}
                       >
-                        রিকোয়েস্ট
+                        {sentRequests.some(r => r.toUserId === resId) ? 'রিকোয়েস্ট সেন্ড' : 'রিকোয়েস্ট'}
                       </button>
                     </div>
                   ))}
@@ -442,9 +446,10 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                             handleSendFriendRequestTo(resId);
                             setShowMobileSearch(false);
                           }}
-                          className="bg-[#1D4ED8] text-white px-4 py-2 rounded-lg text-sm font-bold"
+                          disabled={sentRequests.some(r => r.toUserId === resId)}
+                          className={`px-4 py-2 rounded-lg text-sm font-bold ${sentRequests.some(r => r.toUserId === resId) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-[#1D4ED8] text-white'}`}
                         >
-                          রিকোয়েস্ট
+                          {sentRequests.some(r => r.toUserId === resId) ? 'রিকোয়েস্ট সেন্ড' : 'রিকোয়েস্ট'}
                         </button>
                       </div>
                     ))}
@@ -1017,9 +1022,10 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                       </div>
                       <button 
                         onClick={() => handleSendFriendRequestTo(resId)}
-                        className="bg-[#1D4ED8] text-white px-3 py-1.5 rounded-md text-sm font-bold hover:bg-[#1a44c2]"
+                        disabled={sentRequests.some(r => r.toUserId === resId)}
+                        className={`px-3 py-1.5 rounded-md text-sm font-bold transition-colors ${sentRequests.some(r => r.toUserId === resId) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-[#1D4ED8] text-white hover:bg-[#1a44c2]'}`}
                       >
-                        রিকোয়েস্ট
+                        {sentRequests.some(r => r.toUserId === resId) ? 'রিকোয়েস্ট সেন্ড' : 'রিকোয়েস্ট'}
                       </button>
                     </div>
                   ))}

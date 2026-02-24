@@ -32,6 +32,13 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onBack }) => {
       return;
     }
 
+    // Mobile number validation: 11 digits, English only
+    const mobileRegex = /^\d{11}$/;
+    if (!mobileRegex.test(mobile)) {
+      alert('মোবাইল নাম্বার অবশ্যই ১১ সংখ্যার এবং ইংরেজিতে হতে হবে!');
+      return;
+    }
+
     if (password !== confirmPassword) {
       alert('পাসওয়ার্ড দুটি মিলছে না!');
       return;
@@ -130,10 +137,14 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onBack }) => {
               type="tel"
               value={formData.mobile}
               onChange={(e) => {
-                setFormData({ ...formData, mobile: e.target.value });
-                setMobileError(false);
+                // Only allow English digits
+                const value = e.target.value.replace(/\D/g, '');
+                if (value.length <= 11) {
+                  setFormData({ ...formData, mobile: value });
+                  setMobileError(false);
+                }
               }}
-              placeholder="মোবাইল নাম্বার"
+              placeholder="মোবাইল নাম্বার [যেমন: 01700000000]"
               className={`w-full px-4 py-3 bg-[#F5F6F7] rounded-md border outline-none focus:ring-1 focus:ring-[#1D4ED8] transition-all ${
                 mobileError ? 'border-red-500' : 'border-gray-300'
               }`}

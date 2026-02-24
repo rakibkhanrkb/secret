@@ -195,17 +195,32 @@ export const subscribeToApprovedUserIds = (callback: (userIds: string[]) => void
 
 export const sendFriendRequest = async (fromUserId: string, toUserId: string) => {
   try {
-    // Check if request already exists
     await addDoc(collection(db, FRIEND_REQUESTS_COLLECTION), {
       fromUserId,
       toUserId,
       status: 'pending',
       createdAt: Date.now()
     });
+    await createNotification(toUserId, fromUserId, 'request_accepted', `${fromUserId} তোমাকে ফ্রেন্ড রিকোয়েস্ট পাঠিয়েছে!`);
   } catch (error) {
     console.error("Error sending friend request:", error);
     throw error;
   }
+};
+
+export const subscribeToSentFriendRequests = (userId: string, callback: (requests: FriendRequest[]) => void) => {
+  const q = query(
+    collection(db, FRIEND_REQUESTS_COLLECTION), 
+    where('fromUserId', '==', userId),
+    where('status', '==', 'pending')
+  );
+  return onSnapshot(q, (snapshot) => {
+    const requests = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as FriendRequest[];
+    callback(requests);
+  });
 };
 
 export const subscribeToIncomingFriendRequests = (userId: string, callback: (requests: FriendRequest[]) => void) => {
