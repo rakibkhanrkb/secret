@@ -1,0 +1,37 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      // Define customFetch to avoid overwrite issues and provide logging
+      const originalFetch = window.fetch.bind(window);
+      window.customFetch = (...args) => {
+        console.log("Fetching:", args);
+        return originalFetch(...args);
+      };
+
+      // Try to protect window.fetch from being overwritten by scripts that might cause the TypeError
+      try {
+        Object.defineProperty(window, 'fetch', {
+          configurable: false,
+          enumerable: true,
+          get: () => window.customFetch,
+          set: (v) => { 
+            console.warn('Attempted to overwrite window.fetch. Using customFetch instead.');
+          }
+        });
+      } catch (e) {
+        console.error('Note: window.fetch is read-only in this environment. Overwrite attempts may fail.');
+      }
+    </script>
+    <title>Secret Message</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

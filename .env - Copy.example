@@ -1,0 +1,7 @@
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=secretmessage-dc606.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=secretmessage-dc606
+VITE_FIREBASE_STORAGE_BUCKET=secretmessage-dc606.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
