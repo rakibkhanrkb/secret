@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, subscribeToSentFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles, toggleReaction, removeReaction, subscribeToAllUserIds } from '../services/firebase';
 import { Post, FriendRequest, Notification, UserProfile } from '../types';
-import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2 } from 'lucide-react';
+import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2, Edit, MapPin, Calendar, Info } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import ChatWindow from './ChatWindow';
 
@@ -16,7 +16,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   const [headerSearchInput, setHeaderSearchInput] = useState('');
   const [headerSearchResults, setHeaderSearchResults] = useState<string[]>([]);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
-  const [showMobileFriends, setShowMobileFriends] = useState(false);
+  const [showFriendsList, setShowFriendsList] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [friendIdInput, setFriendIdInput] = useState('');
@@ -41,6 +41,9 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
     gender: ''
   });
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [showProfileView, setShowProfileView] = useState(false);
+  const [showFriendCount, setShowFriendCount] = useState(false);
+  const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [hoveredPostId, setHoveredPostId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
@@ -364,8 +367,14 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 <div className="max-h-96 overflow-y-auto">
                   {headerSearchResults.map((resId) => (
                     <div key={resId} className="flex items-center justify-between p-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
+                      <div 
+                        onClick={() => {
+                          setViewingProfileId(resId);
+                          setHeaderSearchInput('');
+                        }}
+                        className="flex items-center gap-3 cursor-pointer group"
+                      >
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 flex-shrink-0 group-hover:border-blue-400 transition-colors">
                           {allProfiles[resId]?.profileImageUrl ? (
                             <img src={allProfiles[resId].profileImageUrl} alt={resId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           ) : (
@@ -375,7 +384,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                           )}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-bold text-gray-800 text-sm">{resId}</span>
+                          <span className="font-bold text-gray-800 text-sm group-hover:text-[#1D4ED8] transition-colors">{resId}</span>
                           {allProfiles[resId]?.location && (
                             <span className="text-[10px] text-gray-500">{allProfiles[resId].location}</span>
                           )}
@@ -424,23 +433,29 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                   <div className="fixed top-14 left-0 right-0 bg-white shadow-2xl border-b border-gray-200 max-h-[70vh] overflow-y-auto z-[100]">
                     {headerSearchResults.map((resId) => (
                       <div key={resId} className="flex items-center justify-between p-4 hover:bg-gray-50 border-b border-gray-50 last:border-0">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
-                            {allProfiles[resId]?.profileImageUrl ? (
-                              <img src={allProfiles[resId].profileImageUrl} alt={resId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                            ) : (
-                              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                                <User className="w-6 h-6 text-gray-400" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="font-bold text-gray-800">{resId}</span>
-                            {allProfiles[resId]?.location && (
-                              <span className="text-xs text-gray-500">{allProfiles[resId].location}</span>
-                            )}
-                          </div>
+                      <div 
+                        onClick={() => {
+                          setViewingProfileId(resId);
+                          setShowMobileSearch(false);
+                        }}
+                        className="flex items-center gap-3 cursor-pointer"
+                      >
+                        <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
+                          {allProfiles[resId]?.profileImageUrl ? (
+                            <img src={allProfiles[resId].profileImageUrl} alt={resId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                              <User className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
                         </div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-800">{resId}</span>
+                          {allProfiles[resId]?.location && (
+                            <span className="text-xs text-gray-500">{allProfiles[resId].location}</span>
+                          )}
+                        </div>
+                      </div>
                         <button 
                           onClick={() => {
                             handleSendFriendRequestTo(resId);
@@ -487,8 +502,8 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
         {!showMobileSearch && (
           <div className="flex items-center gap-2">
             <button 
-              onClick={() => setShowMobileFriends(!showMobileFriends)}
-              className={`p-2 rounded-full transition-colors relative lg:hidden ${showMobileFriends ? 'bg-blue-50 text-[#1D4ED8]' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+              onClick={() => setShowFriendsList(!showFriendsList)}
+              className={`p-2 rounded-full transition-colors relative lg:hidden ${showFriendsList ? 'bg-blue-50 text-[#1D4ED8]' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
             >
               <Users className="w-5 h-5" />
             </button>
@@ -514,15 +529,8 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               </span>
             )}
           </button>
-          <button 
-            onClick={onBack}
-            className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors text-gray-700"
-            title="লগ আউট"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
           <div 
-            onClick={() => setIsEditingProfile(true)}
+            onClick={() => setShowProfileView(true)}
             className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 ml-2 cursor-pointer"
           >
             {userProfile?.profileImageUrl ? (
@@ -552,7 +560,10 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
             </div>
             <span className="font-semibold text-gray-800">{userId}</span>
           </div>
-          <div className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors">
+          <div 
+            onClick={() => setShowFriendsList(true)}
+            className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors"
+          >
             <Users className="w-9 h-9 text-[#1D4ED8]" />
             <span className="font-semibold text-gray-800">বন্ধুরা</span>
           </div>
@@ -631,7 +642,12 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                         )}
                       </div>
                       <div>
-                        <h4 className="font-bold text-gray-900 hover:underline cursor-pointer">{post.userId}</h4>
+                        <h4 
+                          onClick={() => setViewingProfileId(post.userId)}
+                          className="font-bold text-gray-900 hover:underline cursor-pointer"
+                        >
+                          {post.userId}
+                        </h4>
                         <p className="text-xs text-gray-500 flex items-center gap-1">
                           {formatDistanceToNow(post.createdAt)} ago • <Users className="w-3 h-3" />
                         </p>
@@ -835,10 +851,12 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               friends.map((friendId) => (
                 <div 
                   key={friendId} 
-                  onClick={() => setActiveChatFriend(friendId)}
-                  className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors relative"
+                  className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors relative group"
                 >
-                  <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 relative">
+                  <div 
+                    onClick={() => setViewingProfileId(friendId)}
+                    className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 relative hover:scale-110 transition-transform"
+                  >
                     {allProfiles[friendId]?.profileImageUrl ? (
                       <img src={allProfiles[friendId].profileImageUrl} alt={friendId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
@@ -848,7 +866,12 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                     )}
                     <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
                   </div>
-                  <span className="font-semibold text-gray-800 flex-1">{friendId}</span>
+                  <span 
+                    onClick={() => setActiveChatFriend(friendId)}
+                    className="font-semibold text-gray-800 flex-1 hover:text-[#1D4ED8]"
+                  >
+                    {friendId}
+                  </span>
                   <div className="flex items-center gap-1">
                     {unreadCounts[friendId] > 0 && (
                       <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full mr-1">
@@ -920,6 +943,193 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 </div>
               ))
             )}
+          </div>
+        </div>
+      )}
+
+      {viewingProfileId && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-[340px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+            <div className="relative h-24 bg-gradient-to-r from-gray-600 to-gray-800">
+              <button 
+                onClick={() => setViewingProfileId(null)}
+                className="absolute top-3 right-3 p-1.5 bg-black/20 hover:bg-black/40 text-white rounded-full transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="px-5 pb-6">
+              <div className="relative -mt-12 mb-3 flex flex-col items-center">
+                <div className="w-24 h-24 rounded-full border-4 border-white overflow-hidden shadow-lg bg-white">
+                  {allProfiles[viewingProfileId]?.profileImageUrl ? (
+                    <img src={allProfiles[viewingProfileId].profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <User className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-center mb-5">
+                <h3 className="text-xl font-bold text-gray-900">{viewingProfileId}</h3>
+                {allProfiles[viewingProfileId]?.bio && (
+                  <p className="text-gray-600 mt-1 text-sm italic leading-tight">"{allProfiles[viewingProfileId].bio}"</p>
+                )}
+              </div>
+
+              <div className="space-y-3 border-t border-gray-100 pt-4">
+                <div className="flex items-center gap-3 text-gray-700">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-[#1D4ED8]">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">অবস্থান</p>
+                    <p className="text-sm font-medium">{allProfiles[viewingProfileId]?.location || 'উল্লেখ নেই'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 text-gray-700">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">জন্ম তারিখ</p>
+                    <p className="text-sm font-medium">{allProfiles[viewingProfileId]?.birthDate || 'উল্লেখ নেই'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 text-gray-700">
+                  <div className="w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-600">
+                    <Info className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">লিঙ্গ</p>
+                    <p className="text-sm font-medium">{allProfiles[viewingProfileId]?.gender || 'উল্লেখ নেই'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {viewingProfileId !== userId && !friends.includes(viewingProfileId) && (
+                <button 
+                  onClick={() => {
+                    handleSendFriendRequestTo(viewingProfileId);
+                    setViewingProfileId(null);
+                  }}
+                  disabled={sentRequests.some(r => r.toUserId === viewingProfileId)}
+                  className={`w-full mt-5 font-bold py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${
+                    sentRequests.some(r => r.toUserId === viewingProfileId)
+                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                      : 'bg-[#1D4ED8] hover:bg-[#1a44c2] text-white shadow-lg shadow-blue-100'
+                  }`}
+                >
+                  <UserPlus className="w-4 h-4" />
+                  {sentRequests.some(r => r.toUserId === viewingProfileId) ? 'রিকোয়েস্ট সেন্ড করা হয়েছে' : 'ফ্রেন্ড রিকোয়েস্ট পাঠান'}
+                </button>
+              )}
+              
+              {friends.includes(viewingProfileId) && (
+                <div className="w-full mt-5 bg-green-50 text-green-600 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2">
+                  <Check className="w-4 h-4" />
+                  আপনার বন্ধু
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showProfileView && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-[340px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+            <div className="relative h-24 bg-gradient-to-r from-blue-600 to-indigo-600">
+              <button 
+                onClick={() => setShowProfileView(false)}
+                className="absolute top-3 right-3 p-1.5 bg-black/20 hover:bg-black/40 text-white rounded-full transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => {
+                  setShowProfileView(false);
+                  setIsEditingProfile(true);
+                }}
+                className="absolute top-3 left-3 p-1.5 bg-black/20 hover:bg-black/40 text-white rounded-full transition-colors"
+                title="প্রোফাইল এডিট করুন"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="px-5 pb-6">
+              <div className="relative -mt-12 mb-3 flex flex-col items-center">
+                <div 
+                  onClick={() => setShowFriendCount(!showFriendCount)}
+                  className="w-24 h-24 rounded-full border-4 border-white overflow-hidden shadow-lg cursor-pointer hover:scale-105 transition-transform bg-white"
+                >
+                  {userProfile?.profileImageUrl ? (
+                    <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <User className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-center mb-5">
+                <h3 className="text-xl font-bold text-gray-900">{userId}</h3>
+                {userProfile?.bio && (
+                  <p className="text-gray-600 mt-1 text-sm italic leading-tight">"{userProfile.bio}"</p>
+                )}
+                <div className="mt-3 inline-block bg-blue-50 px-3 py-1 rounded-full">
+                  <p className="text-xs font-bold text-[#1D4ED8]">
+                    সর্বমোট ফ্রেন্ড সংখ্যা: {friends.length}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3 border-t border-gray-100 pt-4">
+                <div className="flex items-center gap-3 text-gray-700">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-[#1D4ED8]">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">অবস্থান</p>
+                    <p className="text-sm font-medium">{userProfile?.location || 'উল্লেখ নেই'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 text-gray-700">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">জন্ম তারিখ</p>
+                    <p className="text-sm font-medium">{userProfile?.birthDate || 'উল্লেখ নেই'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 text-gray-700">
+                  <div className="w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-600">
+                    <Info className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">লিঙ্গ</p>
+                    <p className="text-sm font-medium">{userProfile?.gender || 'উল্লেখ নেই'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={onBack}
+                className="w-full mt-5 bg-red-50 hover:bg-red-100 text-red-600 font-bold py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                লগআউট
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1132,29 +1342,31 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
         </div>
       )}
 
-      {showMobileFriends && (
+      {showFriendsList && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-end">
           <div className="bg-white h-full w-full max-w-xs shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
               <h3 className="font-bold text-xl">আপনার বন্ধুরা</h3>
-              <button onClick={() => setShowMobileFriends(false)} className="p-2 hover:bg-gray-100 rounded-full">
+              <button onClick={() => setShowFriendsList(false)} className="p-2 hover:bg-gray-100 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
               {friends.length === 0 ? (
                 <p className="text-center text-gray-500 py-8 italic">কোনো বন্ধু নেই</p>
               ) : (
                 friends.map((friendId) => (
                   <div 
                     key={friendId} 
-                    onClick={() => {
-                      setActiveChatFriend(friendId);
-                      setShowMobileFriends(false);
-                    }}
-                    className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors relative"
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors relative group"
                   >
-                    <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 relative">
+                    <div 
+                      onClick={() => {
+                        setViewingProfileId(friendId);
+                        setShowFriendsList(false);
+                      }}
+                      className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 relative hover:scale-105 transition-transform"
+                    >
                       {allProfiles[friendId]?.profileImageUrl ? (
                         <img src={allProfiles[friendId].profileImageUrl} alt={friendId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       ) : (
@@ -1164,12 +1376,29 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                       )}
                       <div className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                     </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-gray-800">{friendId}</p>
+                    <div 
+                      className="flex-1"
+                      onClick={() => {
+                        setViewingProfileId(friendId);
+                        setShowFriendsList(false);
+                      }}
+                    >
+                      <p className="font-bold text-gray-800 group-hover:text-[#1D4ED8] transition-colors">{friendId}</p>
                       {allProfiles[friendId]?.location && (
                         <p className="text-[10px] text-gray-500">{allProfiles[friendId].location}</p>
                       )}
                     </div>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveChatFriend(friendId);
+                        setShowFriendsList(false);
+                      }}
+                      className="p-2 hover:bg-blue-50 text-blue-600 rounded-full transition-colors"
+                      title="মেসেজ পাঠান"
+                    >
+                      <MessageSquare className="w-5 h-5" />
+                    </button>
                     {unreadCounts[friendId] > 0 && (
                       <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">
                         {unreadCounts[friendId]}
@@ -1183,7 +1412,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               <button 
                 onClick={() => {
                   setIsAddingFriend(true);
-                  setShowMobileFriends(false);
+                  setShowFriendsList(false);
                 }}
                 className="w-full flex items-center justify-center gap-2 py-3 bg-[#1D4ED8] text-white rounded-xl font-bold shadow-lg shadow-blue-200"
               >

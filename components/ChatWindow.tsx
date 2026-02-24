@@ -69,7 +69,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
   };
 
   return (
-    <div className="fixed inset-0 md:inset-auto md:bottom-0 md:right-4 z-[100] w-full md:w-80 h-full md:h-[450px] bg-white md:rounded-t-lg shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-4 z-[100] w-[95%] max-w-[340px] md:w-72 h-[70vh] md:h-[400px] bg-white rounded-t-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-2 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2 hover:bg-gray-100 p-1 rounded-lg cursor-pointer transition-colors flex-1">
