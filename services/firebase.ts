@@ -470,6 +470,46 @@ export const subscribeToAllUserIds = (callback: (userIds: string[]) => void) => 
   });
 };
 
+export const subscribeToAllUserAccounts = (callback: (accounts: UserAccount[]) => void) => {
+  const q = query(collection(db, USER_ACCOUNTS_COLLECTION));
+  return onSnapshot(q, (snapshot) => {
+    const accounts = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as UserAccount[];
+    // Sort client-side to avoid index requirements
+    accounts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    callback(accounts);
+  });
+};
+
+export const updateUserAccount = async (accountId: string, data: Partial<UserAccount>) => {
+  try {
+    const docRef = doc(db, USER_ACCOUNTS_COLLECTION, accountId);
+    await updateDoc(docRef, data);
+  } catch (error) {
+    console.error("Error updating user account:", error);
+    throw error;
+  }
+};
+
+export const deleteUserAccount = async (accountId: string, userId: string) => {
+  try {
+    // Delete account
+    await deleteDoc(doc(db, USER_ACCOUNTS_COLLECTION, accountId));
+    
+    // Delete profile
+    const profileQ = query(collection(db, USER_PROFILES_COLLECTION), where('userId', '==', userId));
+    const profileSnap = await getDocs(profileQ);
+    const deletePromises = profileSnap.docs.map(d => deleteDoc(doc(db, USER_PROFILES_COLLECTION, d.id)));
+    await Promise.all(deletePromises);
+    
+  } catch (error) {
+    console.error("Error deleting user account:", error);
+    throw error;
+  }
+};
+
 export const loginUser = async (userId: string, password: string): Promise<boolean> => {
   // Hardcoded Admin check
   if (userId === 'rkb@93' && password === 'rkb@80') return true;
