@@ -275,7 +275,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
     if (!content?.trim()) return;
 
     try {
-      await addReply(postId, content, false);
+      await addReply(postId, userId, content, false);
       setReplyText(prev => ({ ...prev, [postId]: '' }));
     } catch (error) {
       alert('রিপ্লাই দিতে সমস্যা হয়েছে।');
@@ -775,7 +775,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                             <User className="w-4 h-4 text-gray-500" />
                           </div>
                           <div className="bg-[#F0F2F5] p-2 px-3 rounded-2xl max-w-[90%]">
-                            <p className="text-xs font-bold text-gray-900">{reply.isAdmin ? 'অ্যাডমিন' : 'ইউজার'}</p>
+                            <p className="text-xs font-bold text-gray-900">{reply.isAdmin ? 'অ্যাডমিন' : (reply.userId || 'ইউজার')}</p>
                             <p className="text-sm text-gray-800">{reply.content}</p>
                           </div>
                         </div>
@@ -1636,7 +1636,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 const password = formData.get('password') as string;
 
                 try {
-                  await updateUserAccount(editingAccount.id, { userId, mobile, password });
+                  await updateUserAccount(editingAccount.id, editingAccount.userId, { userId, mobile, password });
                   alert('তথ্য আপডেট হয়েছে।');
                   setEditingAccount(null);
                 } catch (err) {

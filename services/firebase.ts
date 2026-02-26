@@ -1,6 +1,6 @@
 
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, Timestamp, where, deleteDoc, getDocs, deleteField } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, Timestamp, where, deleteDoc, getDocs, deleteField } from 'firebase/firestore';
 import { Post, Reply, RegistrationRequest, FriendRequest, ChatMessage, Notification, UserProfile, UserAccount } from '../types';
 
 // These should be replaced with actual config from user later
@@ -86,11 +86,12 @@ export const subscribeToPosts = (callback: (posts: Post[]) => void, filterUserId
   };
 };
 
-export const addReply = async (postId: string, content: string, isAdmin: boolean) => {
+export const addReply = async (postId: string, userId: string, content: string, isAdmin: boolean) => {
   try {
     const postRef = doc(db, POSTS_COLLECTION, postId);
     const reply: Reply = {
       id: Math.random().toString(36).substr(2, 9),
+      userId,
       content,
       createdAt: Date.now(),
       isAdmin
@@ -100,6 +101,18 @@ export const addReply = async (postId: string, content: string, isAdmin: boolean
     });
   } catch (error) {
     console.error("Error adding reply:", error);
+    throw error;
+  }
+};
+
+export const deleteReply = async (postId: string, reply: Reply) => {
+  try {
+    const postRef = doc(db, POSTS_COLLECTION, postId);
+    await updateDoc(postRef, {
+      replies: arrayRemove(reply)
+    });
+  } catch (error) {
+    console.error("Error deleting reply:", error);
     throw error;
   }
 };
@@ -483,10 +496,83 @@ export const subscribeToAllUserAccounts = (callback: (accounts: UserAccount[]) =
   });
 };
 
-export const updateUserAccount = async (accountId: string, data: Partial<UserAccount>) => {
+export const updateUserAccount = async (accountId: string, oldUserId: string, data: Partial<UserAccount>) => {
   try {
+    const newUserId = data.userId;
     const docRef = doc(db, USER_ACCOUNTS_COLLECTION, accountId);
     await updateDoc(docRef, data);
+
+    // If userId changed, sync all other collections
+    if (newUserId && newUserId !== oldUserId) {
+      // 1. Update Profile
+      const profileQ = query(collection(db, USER_PROFILES_COLLECTION), where('userId', '==', oldUserId));
+      const profileSnap = await getDocs(profileQ);
+      for (const d of profileSnap.docs) {
+        await updateDoc(doc(db, USER_PROFILES_COLLECTION, d.id), { userId: newUserId });
+      }
+
+      // 2. Update Posts
+      const postsQ = query(collection(db, POSTS_COLLECTION), where('userId', '==', oldUserId));
+      const postsSnap = await getDocs(postsQ);
+      for (const d of postsSnap.docs) {
+        await updateDoc(doc(db, POSTS_COLLECTION, d.id), { userId: newUserId });
+      }
+
+      // 3. Update Friend Requests
+      const frFromQ = query(collection(db, FRIEND_REQUESTS_COLLECTION), where('fromUserId', '==', oldUserId));
+      const frFromSnap = await getDocs(frFromQ);
+      for (const d of frFromSnap.docs) {
+        await updateDoc(doc(db, FRIEND_REQUESTS_COLLECTION, d.id), { fromUserId: newUserId });
+      }
+      const frToQ = query(collection(db, FRIEND_REQUESTS_COLLECTION), where('toUserId', '==', oldUserId));
+      const frToSnap = await getDocs(frToQ);
+      for (const d of frToSnap.docs) {
+        await updateDoc(doc(db, FRIEND_REQUESTS_COLLECTION, d.id), { toUserId: newUserId });
+      }
+
+      // 4. Update Messages
+      const msgFromQ = query(collection(db, CHAT_MESSAGES_COLLECTION), where('fromUserId', '==', oldUserId));
+      const msgFromSnap = await getDocs(msgFromQ);
+      for (const d of msgFromSnap.docs) {
+        await updateDoc(doc(db, CHAT_MESSAGES_COLLECTION, d.id), { fromUserId: newUserId });
+      }
+      const msgToQ = query(collection(db, CHAT_MESSAGES_COLLECTION), where('toUserId', '==', oldUserId));
+      const msgToSnap = await getDocs(msgToQ);
+      for (const d of msgToSnap.docs) {
+        await updateDoc(doc(db, CHAT_MESSAGES_COLLECTION, d.id), { toUserId: newUserId });
+      }
+
+      // 5. Update Notifications
+      const notifFromQ = query(collection(db, NOTIFICATIONS_COLLECTION), where('fromUserId', '==', oldUserId));
+      const notifFromSnap = await getDocs(notifFromQ);
+      for (const d of notifFromSnap.docs) {
+        await updateDoc(doc(db, NOTIFICATIONS_COLLECTION, d.id), { fromUserId: newUserId });
+      }
+      const notifToQ = query(collection(db, NOTIFICATIONS_COLLECTION), where('toUserId', '==', oldUserId));
+      const notifToSnap = await getDocs(notifToQ);
+      for (const d of notifToSnap.docs) {
+        await updateDoc(doc(db, NOTIFICATIONS_COLLECTION, d.id), { toUserId: newUserId });
+      }
+
+      // 6. Update Registration Requests
+      const regQ = query(collection(db, REGISTRATION_COLLECTION), where('assignedUserId', '==', oldUserId));
+      const regSnap = await getDocs(regQ);
+      for (const d of regSnap.docs) {
+        await updateDoc(doc(db, REGISTRATION_COLLECTION, d.id), { assignedUserId: newUserId });
+      }
+
+      // 7. Update Replies in all posts
+      const allPostsSnap = await getDocs(collection(db, POSTS_COLLECTION));
+      for (const d of allPostsSnap.docs) {
+        const post = d.data() as Post;
+        if (post.replies && post.replies.some(r => r.userId === oldUserId)) {
+          const updatedReplies = post.replies.map(r => 
+            r.userId === oldUserId ? { ...r, userId: newUserId } : r
+          );
+          await updateDoc(doc(db, POSTS_COLLECTION, d.id), { replies: updatedReplies });
+        }
+      }
+    }
   } catch (error) {
     console.error("Error updating user account:", error);
     throw error;
@@ -495,14 +581,75 @@ export const updateUserAccount = async (accountId: string, data: Partial<UserAcc
 
 export const deleteUserAccount = async (accountId: string, userId: string) => {
   try {
-    // Delete account
+    // 1. Delete account
     await deleteDoc(doc(db, USER_ACCOUNTS_COLLECTION, accountId));
     
-    // Delete profile
+    // 2. Delete profile
     const profileQ = query(collection(db, USER_PROFILES_COLLECTION), where('userId', '==', userId));
     const profileSnap = await getDocs(profileQ);
-    const deletePromises = profileSnap.docs.map(d => deleteDoc(doc(db, USER_PROFILES_COLLECTION, d.id)));
-    await Promise.all(deletePromises);
+    for (const d of profileSnap.docs) {
+      await deleteDoc(doc(db, USER_PROFILES_COLLECTION, d.id));
+    }
+
+    // 3. Delete Posts
+    const postsQ = query(collection(db, POSTS_COLLECTION), where('userId', '==', userId));
+    const postsSnap = await getDocs(postsQ);
+    for (const d of postsSnap.docs) {
+      await deleteDoc(doc(db, POSTS_COLLECTION, d.id));
+    }
+
+    // 4. Delete Friend Requests (This also updates friend lists since they are derived)
+    const frFromQ = query(collection(db, FRIEND_REQUESTS_COLLECTION), where('fromUserId', '==', userId));
+    const frFromSnap = await getDocs(frFromQ);
+    for (const d of frFromSnap.docs) {
+      await deleteDoc(doc(db, FRIEND_REQUESTS_COLLECTION, d.id));
+    }
+    const frToQ = query(collection(db, FRIEND_REQUESTS_COLLECTION), where('toUserId', '==', userId));
+    const frToSnap = await getDocs(frToQ);
+    for (const d of frToSnap.docs) {
+      await deleteDoc(doc(db, FRIEND_REQUESTS_COLLECTION, d.id));
+    }
+
+    // 5. Delete Messages
+    const msgFromQ = query(collection(db, CHAT_MESSAGES_COLLECTION), where('fromUserId', '==', userId));
+    const msgFromSnap = await getDocs(msgFromQ);
+    for (const d of msgFromSnap.docs) {
+      await deleteDoc(doc(db, CHAT_MESSAGES_COLLECTION, d.id));
+    }
+    const msgToQ = query(collection(db, CHAT_MESSAGES_COLLECTION), where('toUserId', '==', userId));
+    const msgToSnap = await getDocs(msgToQ);
+    for (const d of msgToSnap.docs) {
+      await deleteDoc(doc(db, CHAT_MESSAGES_COLLECTION, d.id));
+    }
+
+    // 6. Delete Notifications
+    const notifFromQ = query(collection(db, NOTIFICATIONS_COLLECTION), where('fromUserId', '==', userId));
+    const notifFromSnap = await getDocs(notifFromQ);
+    for (const d of notifFromSnap.docs) {
+      await deleteDoc(doc(db, NOTIFICATIONS_COLLECTION, d.id));
+    }
+    const notifToQ = query(collection(db, NOTIFICATIONS_COLLECTION), where('toUserId', '==', userId));
+    const notifToSnap = await getDocs(notifToQ);
+    for (const d of notifToSnap.docs) {
+      await deleteDoc(doc(db, NOTIFICATIONS_COLLECTION, d.id));
+    }
+
+    // 7. Update Registration Requests
+    const regQ = query(collection(db, REGISTRATION_COLLECTION), where('assignedUserId', '==', userId));
+    const regSnap = await getDocs(regQ);
+    for (const d of regSnap.docs) {
+      await updateDoc(doc(db, REGISTRATION_COLLECTION, d.id), { assignedUserId: deleteField() });
+    }
+
+    // 8. Remove replies from all posts
+    const allPostsSnap = await getDocs(collection(db, POSTS_COLLECTION));
+    for (const d of allPostsSnap.docs) {
+      const post = d.data() as Post;
+      if (post.replies && post.replies.some(r => r.userId === userId)) {
+        const updatedReplies = post.replies.filter(r => r.userId !== userId);
+        await updateDoc(doc(db, POSTS_COLLECTION, d.id), { replies: updatedReplies });
+      }
+    }
     
   } catch (error) {
     console.error("Error deleting user account:", error);

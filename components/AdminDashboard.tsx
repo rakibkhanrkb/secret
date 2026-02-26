@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { subscribeToPosts, addReply, isFirebaseConfigured, deletePost, subscribeToRegistrationRequests, assignUserIdToRequest, subscribeToAllUserProfiles } from '../services/firebase';
-import { Post, RegistrationRequest, UserProfile } from '../types';
-import { Shield, Reply as ReplyIcon, Send, Heart, ArrowLeft, AlertCircle, Trash2, Users, MessageSquare, Search, UserPlus, Check, Phone, Mail, User } from 'lucide-react';
+import { subscribeToPosts, addReply, isFirebaseConfigured, deletePost, subscribeToRegistrationRequests, assignUserIdToRequest, subscribeToAllUserProfiles, subscribeToAllUserAccounts, updateUserAccount, deleteUserAccount, deleteReply } from '../services/firebase';
+import { Post, RegistrationRequest, UserProfile, UserAccount, Reply } from '../types';
+import { Shield, Reply as ReplyIcon, Send, Heart, ArrowLeft, AlertCircle, Trash2, Users, MessageSquare, Search, UserPlus, Check, Phone, Mail, User, Edit, Key, Lock, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface AdminDashboardProps {
@@ -12,9 +12,11 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
+  const [userAccounts, setUserAccounts] = useState<UserAccount[]>([]);
   const [allProfiles, setAllProfiles] = useState<{ [userId: string]: UserProfile }>({});
-  const [activeTab, setActiveTab] = useState<'posts' | 'requests'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'requests' | 'users'>('posts');
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingAccount, setEditingAccount] = useState<UserAccount | null>(null);
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState<{ [key: string]: boolean }>({});
   const [assigningUserId, setAssigningUserId] = useState<{ [key: string]: string }>({});
@@ -24,10 +26,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     const unsubscribePosts = subscribeToPosts(setPosts);
     const unsubscribeRequests = subscribeToRegistrationRequests(setRequests);
     const unsubscribeProfiles = subscribeToAllUserProfiles(setAllProfiles);
+    const unsubscribeAccounts = subscribeToAllUserAccounts(setUserAccounts);
     return () => {
       unsubscribePosts();
       unsubscribeRequests();
       unsubscribeProfiles();
+      unsubscribeAccounts();
     };
   }, []);
 
@@ -42,7 +46,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
 
     setIsSubmitting(prev => ({ ...prev, [postId]: true }));
     try {
-      await addReply(postId, content, true);
+      await addReply(postId, 'Admin', content, true);
       setReplyText(prev => ({ ...prev, [postId]: '' }));
     } catch (error) {
       alert('রিপ্লাই দিতে সমস্যা হয়েছে।');
@@ -74,6 +78,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
       alert('ইউজার আইডি সফলভাবে এসাইন করা হয়েছে!');
     } catch (error) {
       alert('আইডি এসাইন করতে সমস্যা হয়েছে।');
+    }
+  };
+
+  const handleDeleteReply = async (postId: string, reply: Reply) => {
+    if (window.confirm('তুমি কি নিশ্চিত যে তুমি এই কমেন্টটি ডিলিট করতে চাও?')) {
+      try {
+        await deleteReply(postId, reply);
+      } catch (error) {
+        alert('কমেন্ট ডিলিট করতে সমস্যা হয়েছে।');
+      }
     }
   };
 
@@ -143,6 +157,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
               </span>
             )}
           </button>
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${
+              activeTab === 'users' ? 'bg-rose-500 text-white shadow-lg shadow-rose-200' : 'text-gray-500 hover:bg-rose-50'
+            }`}
+          >
+            <User className="w-5 h-5" />
+            ইউজার তথ্য
+          </button>
         </div>
 
         <div className="space-y-8">
@@ -210,12 +233,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                     <div className="mb-6 space-y-3">
                       <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Replies</h4>
                       {post.replies.map((reply) => (
-                        <div key={reply.id} className={`p-3 rounded-2xl text-sm ${reply.isAdmin ? 'bg-rose-100/50 ml-6' : 'bg-gray-50'}`}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`font-bold ${reply.isAdmin ? 'text-rose-600' : 'text-gray-600'}`}>
-                              {reply.isAdmin ? 'Admin' : 'User'}
-                            </span>
-                            <span className="text-[10px] text-gray-400">{formatDistanceToNow(reply.createdAt)} ago</span>
+                        <div key={reply.id} className={`p-3 rounded-2xl text-sm relative group/reply ${reply.isAdmin ? 'bg-rose-100/50 ml-6' : 'bg-gray-50'}`}>
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`font-bold ${reply.isAdmin ? 'text-rose-600' : 'text-gray-600'}`}>
+                                {reply.isAdmin ? 'Admin' : (reply.userId || 'User')}
+                              </span>
+                              <span className="text-[10px] text-gray-400">{formatDistanceToNow(reply.createdAt)} ago</span>
+                            </div>
+                            <button 
+                              onClick={() => handleDeleteReply(post.id, reply)}
+                              className="opacity-0 group-hover/reply:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
+                              title="Delete Comment"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                           <p className="text-gray-700">{reply.content}</p>
                         </div>
@@ -244,7 +276,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 </div>
               ))
             )
-          ) : (
+          ) : activeTab === 'requests' ? (
             <div className="space-y-6">
               {/* Search Bar */}
               <div className="relative">
@@ -324,9 +356,170 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 ))
               )}
             </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-rose-300" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="ইউজার আইডি বা মোবাইল নম্বর দিয়ে খুঁজুন..."
+                  className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-rose-100 focus:border-rose-400 outline-none transition-all bg-white shadow-sm"
+                />
+              </div>
+
+              <div className="grid gap-4">
+                {userAccounts
+                  .filter(acc => 
+                    (acc.userId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (acc.mobile || '').includes(searchQuery)
+                  )
+                  .map((acc) => (
+                    <div key={acc.id} className="bg-white p-6 rounded-3xl shadow-xl border border-rose-100 hover:shadow-2xl transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 font-bold text-2xl border border-rose-100">
+                          {(acc.userId || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-gray-900 text-xl">{acc.userId}</span>
+                            <span className="text-[10px] bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">User</span>
+                          </div>
+                          <div className="flex flex-wrap gap-4">
+                            <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                              <Phone className="w-4 h-4 text-rose-400" />
+                              <span className="font-medium">{acc.mobile}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                              <Lock className="w-4 h-4 text-rose-400" />
+                              <span className="font-mono bg-rose-50 px-2 py-0.5 rounded border border-rose-100 text-rose-700">{acc.password}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => setEditingAccount(acc)}
+                          className="flex items-center gap-2 px-5 py-2.5 bg-rose-50 text-rose-600 rounded-xl font-bold hover:bg-rose-100 transition-colors border border-rose-100"
+                        >
+                          <Edit className="w-4 h-4" />
+                          এডিট
+                        </button>
+                        <button 
+                          onClick={async () => {
+                            if (window.confirm(`${acc.userId} কে ডিলিট করতে চান?`)) {
+                              try {
+                                await deleteUserAccount(acc.id, acc.userId);
+                                alert('ইউজার ডিলিট হয়েছে।');
+                              } catch (e) {
+                                alert('ডিলিট করতে সমস্যা হয়েছে।');
+                              }
+                            }
+                          }}
+                          className="p-2.5 text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                {userAccounts.length === 0 && (
+                  <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-rose-100">
+                    <Users className="w-20 h-20 text-rose-100 mx-auto mb-4" />
+                    <p className="text-gray-400 font-bold text-xl">কোনো ইউজার পাওয়া যায়নি</p>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Edit User Modal */}
+      {editingAccount && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden border border-rose-100">
+            <div className="p-8 border-b border-rose-50 flex justify-between items-center bg-rose-50/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-rose-500 rounded-xl text-white">
+                  <Edit className="w-5 h-5" />
+                </div>
+                <h3 className="text-2xl font-black text-gray-900">ইউজার তথ্য পরিবর্তন</h3>
+              </div>
+              <button 
+                onClick={() => setEditingAccount(null)} 
+                className="p-2 hover:bg-white rounded-xl transition-colors text-gray-400 hover:text-rose-500 shadow-sm"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const userId = formData.get('userId') as string;
+                const mobile = formData.get('mobile') as string;
+                const password = formData.get('password') as string;
+
+                try {
+                  await updateUserAccount(editingAccount.id, editingAccount.userId, { userId, mobile, password });
+                  alert('তথ্য আপডেট হয়েছে।');
+                  setEditingAccount(null);
+                } catch (err) {
+                  alert('আপডেট করতে সমস্যা হয়েছে।');
+                }
+              }}
+              className="p-8 space-y-6"
+            >
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-rose-400 uppercase ml-1 tracking-widest">ইউজার আইডি</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-300 w-5 h-5" />
+                  <input 
+                    name="userId"
+                    defaultValue={editingAccount.userId}
+                    className="w-full pl-12 pr-4 py-4 bg-rose-50/50 border-2 border-transparent focus:border-rose-200 rounded-2xl outline-none transition-all font-bold text-gray-800"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-rose-400 uppercase ml-1 tracking-widest">মোবাইল নম্বর</label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-300 w-5 h-5" />
+                  <input 
+                    name="mobile"
+                    defaultValue={editingAccount.mobile}
+                    className="w-full pl-12 pr-4 py-4 bg-rose-50/50 border-2 border-transparent focus:border-rose-200 rounded-2xl outline-none transition-all font-bold text-gray-800"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-rose-400 uppercase ml-1 tracking-widest">পাসওয়ার্ড</label>
+                <div className="relative">
+                  <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-300 w-5 h-5" />
+                  <input 
+                    name="password"
+                    defaultValue={editingAccount.password}
+                    className="w-full pl-12 pr-4 py-4 bg-rose-50/50 border-2 border-transparent focus:border-rose-200 rounded-2xl outline-none transition-all font-bold text-gray-800"
+                    required
+                  />
+                </div>
+              </div>
+              <button 
+                type="submit"
+                className="w-full py-4 bg-rose-500 text-white rounded-2xl font-black shadow-lg shadow-rose-200 hover:bg-rose-600 hover:scale-[1.02] active:scale-95 transition-all mt-4"
+              >
+                তথ্য সংরক্ষণ করুন
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

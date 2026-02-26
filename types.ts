@@ -11,6 +11,7 @@ export interface Post {
 
 export interface Reply {
   id: string;
+  userId: string;
   content: string;
   createdAt: number;
   isAdmin: boolean;
