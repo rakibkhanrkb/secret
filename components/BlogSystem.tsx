@@ -5,7 +5,7 @@ import { Post, FriendRequest, Notification, UserProfile, UserAccount, Registrati
 import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2, Edit, MapPin, Calendar, Info, Shield, Key, Phone, Lock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import ChatWindow from './ChatWindow';
-import { compressImage } from '../utils/imageUtils';
+import { compressImage } from '@/src/utils/imageUtils';
 
 interface BlogSystemProps {
   userId: string;

@@ -4,7 +4,7 @@ import { sendChatMessage, subscribeToChat, markMessagesAsRead, subscribeToUserPr
 import { Send, X, User, ArrowLeft, Image as ImageIcon, Loader2, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { ChatMessage, UserProfile } from '../types';
-import { compressImage } from '../utils/imageUtils';
+import { compressImage } from '@/src/utils/imageUtils';
 
 interface ChatWindowProps {
   userId: string;
