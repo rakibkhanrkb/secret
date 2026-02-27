@@ -5,6 +5,7 @@ import { Post, FriendRequest, Notification, UserProfile, UserAccount, Registrati
 import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2, Edit, MapPin, Calendar, Info, Shield, Key, Phone, Lock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import ChatWindow from './ChatWindow';
+import { compressImage } from '../utils/imageUtils';
 
 interface BlogSystemProps {
   userId: string;
@@ -132,13 +133,15 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) { // 1MB limit for base64
-        alert('ছবিটি ১ মেগাবাইটের চেয়ে বড়। ছোট ছবি ব্যবহার করো।');
-        return;
-      }
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImage(reader.result as string);
+      reader.onloadend = async () => {
+        try {
+          const compressed = await compressImage(reader.result as string);
+          setSelectedImage(compressed);
+        } catch (error) {
+          console.error("Compression error:", error);
+          setSelectedImage(reader.result as string);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -158,17 +161,19 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   const handleProfileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 500 * 1024) { // 500KB limit for profile pic
-        alert('প্রোফাইল ছবিটি ৫০০ কেবির চেয়ে বড়। ছোট ছবি ব্যবহার করো।');
-        return;
-      }
       setIsUpdatingProfile(true);
       const reader = new FileReader();
       reader.onloadend = async () => {
         try {
-          await updateUserProfile(userId, { profileImageUrl: reader.result as string });
+          const compressed = await compressImage(reader.result as string, 400, 400, 0.6);
+          await updateUserProfile(userId, { profileImageUrl: compressed });
         } catch (error) {
-          alert('প্রোফাইল ছবি আপডেট করতে সমস্যা হয়েছে।');
+          console.error("Profile image compression error:", error);
+          try {
+            await updateUserProfile(userId, { profileImageUrl: reader.result as string });
+          } catch (err) {
+            alert('প্রোফাইল ছবি আপডেট করতে সমস্যা হয়েছে।');
+          }
         } finally {
           setIsUpdatingProfile(false);
         }
@@ -502,14 +507,30 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
             <button className="h-full px-10 border-b-4 border-[#1D4ED8] text-[#1D4ED8]">
               <Home className="w-7 h-7" />
             </button>
-            <button className="h-full px-10 text-gray-500 hover:bg-gray-100 rounded-lg">
+            <button 
+              onClick={() => setShowFriendsList(true)}
+              className="h-full px-10 text-gray-500 hover:bg-gray-100 rounded-lg relative"
+            >
               <Users className="w-7 h-7" />
+              {incomingRequests.length > 0 && (
+                <span className="absolute top-2 right-6 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
+                  {incomingRequests.length}
+                </span>
+              )}
+            </button>
+            <button 
+              onClick={() => setShowFriendsList(true)}
+              className="h-full px-10 text-gray-500 hover:bg-gray-100 rounded-lg relative"
+            >
+              <MessageSquare className="w-7 h-7" />
+              {(Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number) > 0 && (
+                <span className="absolute top-2 right-6 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
+                  {Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number}
+                </span>
+              )}
             </button>
             <button className="h-full px-10 text-gray-500 hover:bg-gray-100 rounded-lg">
               <Video className="w-7 h-7" />
-            </button>
-            <button className="h-full px-10 text-gray-500 hover:bg-gray-100 rounded-lg">
-              <ShoppingBag className="w-7 h-7" />
             </button>
           </nav>
         )}
@@ -521,12 +542,20 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               className={`p-2 rounded-full transition-colors relative lg:hidden ${showFriendsList ? 'bg-blue-50 text-[#1D4ED8]' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
             >
               <Users className="w-5 h-5" />
+              {incomingRequests.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white">
+                  {incomingRequests.length}
+                </span>
+              )}
             </button>
             <button className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors relative">
               <Menu className="w-5 h-5 text-gray-700" />
             </button>
-          <button className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors relative">
-            <MessageSquare className="w-5 h-5 text-gray-700" />
+          <button 
+            onClick={() => setShowFriendsList(!showFriendsList)}
+            className={`p-2 rounded-full transition-colors relative ${showFriendsList ? 'bg-blue-50 text-[#1D4ED8]' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+          >
+            <MessageSquare className="w-5 h-5" />
             {(Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number) > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                 {Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number}
@@ -580,7 +609,28 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
             className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors"
           >
             <Users className="w-9 h-9 text-[#1D4ED8]" />
-            <span className="font-semibold text-gray-800">বন্ধুরা</span>
+            <div className="flex-1 flex justify-between items-center">
+              <span className="font-semibold text-gray-800">বন্ধুরা</span>
+              {incomingRequests.length > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {incomingRequests.length}
+                </span>
+              )}
+            </div>
+          </div>
+          <div 
+            onClick={() => setShowFriendsList(true)}
+            className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors"
+          >
+            <MessageSquare className="w-9 h-9 text-[#1D4ED8]" />
+            <div className="flex-1 flex justify-between items-center">
+              <span className="font-semibold text-gray-800">মেসেজ</span>
+              {(Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number) > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number}
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors">
             <Video className="w-9 h-9 text-[#1D4ED8]" />
@@ -1054,9 +1104,21 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               )}
               
               {friends.includes(viewingProfileId) && (
-                <div className="w-full mt-5 bg-green-50 text-green-600 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2">
-                  <Check className="w-4 h-4" />
-                  আপনার বন্ধু
+                <div className="space-y-2 mt-5">
+                  <div className="w-full bg-green-50 text-green-600 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2">
+                    <Check className="w-4 h-4" />
+                    আপনার বন্ধু
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setActiveChatFriend(viewingProfileId);
+                      setViewingProfileId(null);
+                    }}
+                    className="w-full bg-[#1D4ED8] text-white font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-[#1a44c2] transition-all shadow-lg shadow-blue-100"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    মেসেজ পাঠান
+                  </button>
                 </div>
               )}
             </div>
@@ -1376,7 +1438,46 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-              {friends.length === 0 ? (
+              {incomingRequests.length > 0 && (
+                <div className="mb-4 p-2 bg-blue-50 rounded-2xl border border-blue-100">
+                  <h4 className="text-xs font-black text-blue-600 uppercase mb-3 ml-2 tracking-wider">আগত ফ্রেন্ড রিকোয়েস্ট ({incomingRequests.length})</h4>
+                  <div className="space-y-2">
+                    {incomingRequests.map((req) => (
+                      <div key={req.id} className="bg-white p-3 rounded-xl shadow-sm border border-blue-50 flex flex-col gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100">
+                            {allProfiles[req.fromUserId]?.profileImageUrl ? (
+                              <img src={allProfiles[req.fromUserId].profileImageUrl} alt={req.fromUserId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                                <User className="w-5 h-5 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+                          <span className="font-bold text-gray-800">{req.fromUserId}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => respondToFriendRequest(req.id, 'accepted', req.fromUserId, req.toUserId)}
+                            className="flex-1 bg-[#1D4ED8] text-white py-2 rounded-lg text-xs font-bold hover:bg-[#1a44c2] transition-colors"
+                          >
+                            গ্রহণ করুন
+                          </button>
+                          <button 
+                            onClick={() => respondToFriendRequest(req.id, 'rejected', req.fromUserId, req.toUserId)}
+                            className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
+                          >
+                            বাতিল
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <h4 className="text-xs font-black text-gray-400 uppercase mb-2 ml-2 tracking-wider">আপনার বন্ধুরা</h4>
+              {friends.length === 0 && incomingRequests.length === 0 ? (
                 <p className="text-center text-gray-500 py-8 italic">কোনো বন্ধু নেই</p>
               ) : (
                 friends.map((friendId) => (

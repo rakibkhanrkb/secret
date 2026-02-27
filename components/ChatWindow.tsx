@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { sendChatMessage, subscribeToChat, markMessagesAsRead, subscribeToUserProfile } from '../services/firebase';
-import { Send, X, User, ArrowLeft, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Send, X, User, ArrowLeft, Image as ImageIcon, Loader2, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { ChatMessage, UserProfile } from '../types';
+import { compressImage } from '../utils/imageUtils';
 
 interface ChatWindowProps {
   userId: string;
@@ -56,13 +57,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert('ছবিটি ২ মেগাবাইটের চেয়ে ছোট হতে হবে।');
-        return;
-      }
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImage(reader.result as string);
+      reader.onloadend = async () => {
+        try {
+          const compressed = await compressImage(reader.result as string);
+          setSelectedImage(compressed);
+        } catch (error) {
+          console.error("Chat image compression error:", error);
+          setSelectedImage(reader.result as string);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -129,9 +132,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
                   </div>
                 )}
                 {msg.content && <p className="leading-tight">{msg.content}</p>}
-                <p className={`text-[8px] mt-1 text-right opacity-70`}>
-                  {format(msg.createdAt, 'hh:mm a')}
-                </p>
+                <div className="flex items-center justify-end gap-1 mt-1 opacity-70">
+                  <p className="text-[8px]">
+                    {format(msg.createdAt, 'hh:mm a')}
+                  </p>
+                  {msg.fromUserId === userId && msg.read && (
+                    <Check className="w-2.5 h-2.5" />
+                  )}
+                </div>
               </div>
             </div>
           ))
