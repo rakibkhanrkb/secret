@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { sendChatMessage, subscribeToChat, markMessagesAsRead, subscribeToUserProfile } from '../services/firebase';
-import { Send, X, User, ArrowLeft, Image as ImageIcon, Loader2, Check } from 'lucide-react';
-import { format } from 'date-fns';
+import { sendChatMessage, subscribeToChat, markMessagesAsRead, subscribeToUserProfile, deleteChatMessage, initiateCall } from '../services/firebase';
+import { Send, X, User, ArrowLeft, Image as ImageIcon, Loader2, Check, Trash2, Phone, Video } from 'lucide-react';
+import { format, isToday, isYesterday } from 'date-fns';
 import { ChatMessage, UserProfile } from '../types';
 import { compressImage } from '@/src/utils/imageUtils';
 
@@ -15,19 +15,43 @@ interface ChatWindowProps {
 const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [friendProfile, setFriendProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const formatMessageDate = (timestamp: number) => {
+    if (isToday(timestamp)) return format(timestamp, 'hh:mm a');
+    if (isYesterday(timestamp)) return `গতকাল ${format(timestamp, 'hh:mm a')}`;
+    return format(timestamp, 'dd/MM/yy hh:mm a');
+  };
+
+  const shouldShowDateSeparator = (index: number) => {
+    if (index === 0) return true;
+    const prevMsg = messages[index - 1];
+    const currMsg = messages[index];
+    const prevDate = new Date(prevMsg.createdAt).toDateString();
+    const currDate = new Date(currMsg.createdAt).toDateString();
+    return prevDate !== currDate;
+  };
+
+  const getDateSeparatorLabel = (timestamp: number) => {
+    if (isToday(timestamp)) return 'আজ';
+    if (isYesterday(timestamp)) return 'গতকাল';
+    return format(timestamp, 'MMMM dd, yyyy');
+  };
+
   useEffect(() => {
     const unsubscribe = subscribeToChat(userId, friendId, setMessages);
-    const unsubProfile = subscribeToUserProfile(friendId, setFriendProfile);
+    const unsubFriendProfile = subscribeToUserProfile(friendId, setFriendProfile);
+    const unsubUserProfile = subscribeToUserProfile(userId, setUserProfile);
     markMessagesAsRead(userId, friendId);
     return () => {
       unsubscribe();
-      unsubProfile();
+      unsubFriendProfile();
+      unsubUserProfile();
     };
   }, [userId, friendId]);
 
@@ -71,6 +95,24 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
     }
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+    if (window.confirm('আপনি কি নিশ্চিত যে আপনি এই মেসেজটি ডিলিট করতে চান?')) {
+      try {
+        await deleteChatMessage(messageId);
+      } catch (error) {
+        alert('মেসেজ ডিলিট করতে সমস্যা হয়েছে।');
+      }
+    }
+  };
+
+  const handleStartCall = async (type: 'audio' | 'video') => {
+    try {
+      await initiateCall(userId, friendId, type);
+    } catch (error) {
+      alert('কল শুরু করতে সমস্যা হয়েছে।');
+    }
+  };
+
   return (
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-4 z-[100] w-[95%] max-w-[340px] md:w-72 h-[70vh] md:h-[400px] bg-white rounded-t-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
       {/* Header */}
@@ -90,13 +132,24 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
             <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-white rounded-full"></div>
           </div>
           <div>
-            <h3 className="font-bold text-sm text-gray-900">{friendId}</h3>
+            <h3 className="font-bold text-sm text-gray-900">{friendProfile?.displayName || friendId}</h3>
             <p className="text-[10px] text-green-500 font-medium">সক্রিয় আছেন</p>
           </div>
         </div>
         <div className="flex gap-1">
-          <button className="p-1.5 hover:bg-gray-100 rounded-full text-[#1D4ED8]">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+          <button 
+            onClick={() => handleStartCall('audio')}
+            className="p-1.5 hover:bg-gray-100 rounded-full text-[#1D4ED8]"
+            title="অডিও কল"
+          >
+            <Phone className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => handleStartCall('video')}
+            className="p-1.5 hover:bg-gray-100 rounded-full text-[#1D4ED8]"
+            title="ভিডিও কল"
+          >
+            <Video className="w-5 h-5" />
           </button>
           <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full text-[#1D4ED8]">
             <X className="w-5 h-5" />
@@ -114,34 +167,51 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
             <p className="text-xs font-medium">চ্যাট শুরু করুন</p>
           </div>
         ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.fromUserId === userId ? 'justify-end' : 'justify-start'}`}
-            >
+          messages.map((msg, index) => (
+            <React.Fragment key={msg.id}>
+              {shouldShowDateSeparator(index) && (
+                <div className="flex justify-center my-4">
+                  <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                    {getDateSeparatorLabel(msg.createdAt)}
+                  </span>
+                </div>
+              )}
               <div
-                className={`max-w-[85%] p-2.5 px-3 rounded-2xl text-sm ${
-                  msg.fromUserId === userId
-                    ? 'bg-[#1D4ED8] text-white'
-                    : 'bg-[#F0F2F5] text-gray-900'
-                }`}
+                className={`flex ${msg.fromUserId === userId ? 'justify-end' : 'justify-start'}`}
               >
-                {msg.imageUrl && (
-                  <div className="mb-2 rounded-lg overflow-hidden border border-white/20">
-                    <img src={msg.imageUrl} alt="Chat" className="w-full max-h-60 object-cover" referrerPolicy="no-referrer" />
-                  </div>
-                )}
-                {msg.content && <p className="leading-tight">{msg.content}</p>}
-                <div className="flex items-center justify-end gap-1 mt-1 opacity-70">
-                  <p className="text-[8px]">
-                    {format(msg.createdAt, 'hh:mm a')}
-                  </p>
-                  {msg.fromUserId === userId && msg.read && (
-                    <Check className="w-2.5 h-2.5" />
+                <div
+                  className={`max-w-[85%] p-2.5 px-3 rounded-2xl text-sm ${
+                    msg.fromUserId === userId
+                      ? 'bg-[#1D4ED8] text-white'
+                      : 'bg-[#F0F2F5] text-gray-900'
+                  }`}
+                >
+                  {msg.imageUrl && (
+                    <div className="mb-2 rounded-lg overflow-hidden border border-white/20">
+                      <img src={msg.imageUrl} alt="Chat" className="w-full max-h-60 object-cover" referrerPolicy="no-referrer" />
+                    </div>
                   )}
+                  {msg.content && <p className="leading-tight">{msg.content}</p>}
+                  <div className="flex items-center justify-end gap-1 mt-1 opacity-70">
+                    {msg.fromUserId === userId && (
+                      <button 
+                        onClick={() => handleDeleteMessage(msg.id!)}
+                        className="p-1 hover:bg-white/20 rounded-full mr-auto transition-colors"
+                        title="ডিলিট করুন"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                    <p className="text-[10px] font-medium">
+                      {format(msg.createdAt, 'hh:mm a')}
+                    </p>
+                    {msg.fromUserId === userId && msg.read && (
+                      <Check className="w-3 h-3" />
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            </React.Fragment>
           ))
         )}
         <div ref={messagesEndRef} />

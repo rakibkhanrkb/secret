@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, subscribeToSentFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles, toggleReaction, removeReaction, subscribeToAllUserIds, subscribeToAllUserAccounts, updateUserAccount, deleteUserAccount, subscribeToRegistrationRequests } from '../services/firebase';
-import { Post, FriendRequest, Notification, UserProfile, UserAccount, RegistrationRequest } from '../types';
-import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2, Edit, MapPin, Calendar, Info, Shield, Key, Phone, Lock } from 'lucide-react';
+import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, subscribeToSentFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles, toggleReaction, removeReaction, subscribeToAllUserIds, subscribeToAllUserAccounts, updateUserAccount, deleteUserAccount, subscribeToRegistrationRequests, subscribeToAllFriendships, subscribeToActiveCalls, subscribeToCallStatus, initiateCall, requestNotificationPermission, onForegroundMessage } from '../services/firebase';
+import { Post, FriendRequest, Notification, UserProfile, UserAccount, RegistrationRequest, Call } from '../types';
+import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2, Edit, MapPin, Calendar, Info, Shield, Key, Phone, Lock, PhoneOff, Mic, MicOff, VideoOff } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import ChatWindow from './ChatWindow';
+import CallWindow from './CallWindow';
 import { compressImage } from '@/src/utils/imageUtils';
 
 interface BlogSystemProps {
@@ -36,12 +37,15 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   const [allProfiles, setAllProfiles] = useState<{ [userId: string]: UserProfile }>({});
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileFormData, setProfileFormData] = useState({
+    displayName: '',
     bio: '',
     location: '',
     birthDate: '',
     gender: ''
   });
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [allFriendships, setAllFriendships] = useState<{ u1: string, u2: string }[]>([]);
+  const [suggestedFriends, setSuggestedFriends] = useState<{ userId: string, mutualCount: number, commonInterests: string[] }[]>([]);
   const [showProfileView, setShowProfileView] = useState(false);
   const [showFriendCount, setShowFriendCount] = useState(false);
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
@@ -52,10 +56,17 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   const [adminSearchTerm, setAdminSearchTerm] = useState('');
   const [editingAccount, setEditingAccount] = useState<UserAccount | null>(null);
   const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [activeCall, setActiveCall] = useState<Call | null>(null);
   const [hoveredPostId, setHoveredPostId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const profileInputRef = useRef<HTMLInputElement>(null);
+
+  const getDisplayName = (uid: string) => {
+    return allProfiles[uid]?.displayName || uid;
+  };
+
+  const totalUnreadCount: number = (Object.values(unreadCounts) as number[]).reduce((acc: number, count: number) => acc + count, 0);
 
   useEffect(() => {
     if (!isFirebaseConfigured) return;
@@ -68,21 +79,29 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
     const unsubProfile = subscribeToUserProfile(userId, setUserProfile);
     const unsubAllProfiles = subscribeToAllUserProfiles(setAllProfiles);
     const unsubAllUserIds = subscribeToAllUserIds(setAllUserIds);
+    const unsubAllFriendships = subscribeToAllFriendships(setAllFriendships);
+    const unsubActiveCalls = subscribeToActiveCalls(userId, (call) => {
+      if (call) {
+        setActiveCall(call);
+      }
+    });
+
+    // Request notification permission
+    requestNotificationPermission(userId);
+
+    // Handle foreground messages
+    const unsubForeground = onForegroundMessage((payload) => {
+      console.log("Foreground message received:", payload);
+      // Note: To actually send push notifications to other users, 
+      // a backend service or Firebase Cloud Function is required 
+      // to call the FCM API using the recipient's fcmToken.
+    });
 
     let unsubAccounts: (() => void) | null = null;
     let unsubRegRequests: (() => void) | null = null;
     if (userId === 'rkb@93') {
       unsubAccounts = subscribeToAllUserAccounts(setUserAccounts);
       unsubRegRequests = subscribeToRegistrationRequests(setRegistrationRequests);
-    }
-
-    if (userProfile) {
-      setProfileFormData({
-        bio: userProfile.bio || '',
-        location: userProfile.location || '',
-        birthDate: userProfile.birthDate || '',
-        gender: userProfile.gender || ''
-      });
     }
 
     return () => {
@@ -94,10 +113,25 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       unsubProfile();
       unsubAllProfiles();
       unsubAllUserIds();
+      unsubAllFriendships();
+      unsubActiveCalls();
+      unsubForeground();
       if (unsubAccounts) unsubAccounts();
       if (unsubRegRequests) unsubRegRequests();
     };
   }, [userId]);
+
+  useEffect(() => {
+    if (userProfile) {
+      setProfileFormData({
+        displayName: userProfile.displayName || userId,
+        bio: userProfile.bio || '',
+        location: userProfile.location || '',
+        birthDate: userProfile.birthDate || '',
+        gender: userProfile.gender || ''
+      });
+    }
+  }, [userProfile, userId]);
 
   useEffect(() => {
     if (!isFirebaseConfigured) return;
@@ -260,6 +294,59 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       alert('রিকোয়েস্ট পাঠাতে সমস্যা হয়েছে।');
     }
   };
+
+  useEffect(() => {
+    if (!userId || allUserIds.length === 0) return;
+
+    // 1. Build adjacency list for all friendships
+    const adj: { [uid: string]: Set<string> } = {};
+    allFriendships.forEach(({ u1, u2 }) => {
+      if (!adj[u1]) adj[u1] = new Set();
+      if (!adj[u2]) adj[u2] = new Set();
+      adj[u1].add(u2);
+      adj[u2].add(u1);
+    });
+
+    const myFriends = adj[userId] || new Set();
+    const pendingSent = new Set(sentRequests.map(r => r.toUserId));
+    const pendingIncoming = new Set(incomingRequests.map(r => r.fromUserId));
+
+    const suggestions: { userId: string, mutualCount: number, commonInterests: string[] }[] = [];
+
+    allUserIds.forEach(otherId => {
+      if (otherId === userId) return;
+      if (myFriends.has(otherId)) return;
+      if (pendingSent.has(otherId)) return;
+      if (pendingIncoming.has(otherId)) return;
+
+      // Calculate mutual friends
+      let mutualCount = 0;
+      const otherFriends = adj[otherId] || new Set();
+      otherFriends.forEach(f => {
+        if (myFriends.has(f)) mutualCount++;
+      });
+
+      // Calculate common interests (simple keyword matching in bio)
+      const commonInterests: string[] = [];
+      const myBio = (userProfile?.bio || '').toLowerCase();
+      const otherBio = (allProfiles[otherId]?.bio || '').toLowerCase();
+      
+      const keywords = ['travel', 'music', 'coding', 'sports', 'reading', 'movies', 'food', 'gaming', 'art', 'photography', 'fitness'];
+      keywords.forEach(kw => {
+        if (myBio.includes(kw) && otherBio.includes(kw)) {
+          commonInterests.push(kw);
+        }
+      });
+
+      if (mutualCount > 0 || commonInterests.length > 0) {
+        suggestions.push({ userId: otherId, mutualCount, commonInterests });
+      }
+    });
+
+    // Sort by mutual friends count then by interests
+    suggestions.sort((a, b) => (b.mutualCount + b.commonInterests.length) - (a.mutualCount + a.commonInterests.length));
+    setSuggestedFriends(suggestions.slice(0, 10)); // Top 10 suggestions
+  }, [userId, allFriendships, allUserIds, friends, sentRequests, incomingRequests, userProfile, allProfiles]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -470,7 +557,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                           )}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-bold text-gray-800">{resId}</span>
+                          <span className="font-bold text-gray-800">{getDisplayName(resId)}</span>
                           {allProfiles[resId]?.location && (
                             <span className="text-xs text-gray-500">{allProfiles[resId].location}</span>
                           )}
@@ -523,9 +610,9 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               className="h-full px-10 text-gray-500 hover:bg-gray-100 rounded-lg relative"
             >
               <MessageSquare className="w-7 h-7" />
-              {(Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number) > 0 && (
-                <span className="absolute top-2 right-6 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
-                  {Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number}
+              {totalUnreadCount > 0 && (
+                <span className="absolute top-2 right-6 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white animate-badge-pulse shadow-lg">
+                  {totalUnreadCount}
                 </span>
               )}
             </button>
@@ -556,9 +643,9 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
             className={`p-2 rounded-full transition-colors relative ${showFriendsList ? 'bg-blue-50 text-[#1D4ED8]' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
           >
             <MessageSquare className="w-5 h-5" />
-            {(Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number) > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number}
+            {totalUnreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-badge-pulse shadow-lg">
+                {totalUnreadCount}
               </span>
             )}
           </button>
@@ -602,7 +689,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 </div>
               )}
             </div>
-            <span className="font-semibold text-gray-800">{userId}</span>
+            <span className="font-semibold text-gray-800">{getDisplayName(userId)}</span>
           </div>
           <div 
             onClick={() => setShowFriendsList(true)}
@@ -625,9 +712,9 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
             <MessageSquare className="w-9 h-9 text-[#1D4ED8]" />
             <div className="flex-1 flex justify-between items-center">
               <span className="font-semibold text-gray-800">মেসেজ</span>
-              {(Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number) > 0 && (
-                <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  {Object.values(unreadCounts).reduce((a: number, b: unknown) => a + (b as number), 0) as number}
+              {totalUnreadCount > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-badge-pulse shadow-md">
+                  {totalUnreadCount}
                 </span>
               )}
             </div>
@@ -669,7 +756,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 onClick={() => setIsCreatingPost(true)}
                 className="bg-[#F0F2F5] hover:bg-gray-200 text-gray-600 text-left px-4 py-2 rounded-full flex-1 transition-colors"
               >
-                {userId}, আপনি এখন কী ভাবছেন?
+                {getDisplayName(userId)}, আপনি এখন কী ভাবছেন?
               </button>
             </div>
             <hr className="border-gray-100 mb-3" />
@@ -720,7 +807,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                           onClick={() => setViewingProfileId(post.userId)}
                           className="font-bold text-gray-900 hover:underline cursor-pointer"
                         >
-                          {post.userId}
+                          {getDisplayName(post.userId)}
                         </h4>
                         <p className="text-xs text-gray-500 flex items-center gap-1">
                           {formatDistanceToNow(post.createdAt)} ago • <Users className="w-3 h-3" />
@@ -825,7 +912,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                             <User className="w-4 h-4 text-gray-500" />
                           </div>
                           <div className="bg-[#F0F2F5] p-2 px-3 rounded-2xl max-w-[90%]">
-                            <p className="text-xs font-bold text-gray-900">{reply.isAdmin ? 'অ্যাডমিন' : (reply.userId || 'ইউজার')}</p>
+                            <p className="text-xs font-bold text-gray-900">{reply.isAdmin ? 'অ্যাডমিন' : getDisplayName(reply.userId)}</p>
                             <p className="text-sm text-gray-800">{reply.content}</p>
                           </div>
                         </div>
@@ -948,7 +1035,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                   </span>
                   <div className="flex items-center gap-1">
                     {unreadCounts[friendId] > 0 && (
-                      <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full mr-1">
+                      <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full mr-1 animate-badge-pulse shadow-sm">
                         {unreadCounts[friendId]}
                       </span>
                     )}
@@ -1001,8 +1088,14 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                   className={`p-3 rounded-lg flex gap-3 hover:bg-gray-100 cursor-pointer transition-colors ${!n.read ? 'bg-blue-50' : ''}`}
                   onClick={() => markNotificationAsRead(n.id)}
                 >
-                  <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
-                    <Bell className="w-6 h-6 text-white" />
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    n.type === 'missed_call' ? 'bg-red-500' : 
+                    n.type === 'request_accepted' ? 'bg-green-500' : 
+                    'bg-blue-500'
+                  }`}>
+                    {n.type === 'missed_call' ? <PhoneOff className="w-6 h-6 text-white" /> : 
+                     n.type === 'request_accepted' ? <UserPlus className="w-6 h-6 text-white" /> :
+                     <Bell className="w-6 h-6 text-white" />}
                   </div>
                   <div className="flex-1">
                     <p className={`text-sm ${!n.read ? 'font-bold' : ''}`}>{n.message}</p>
@@ -1047,7 +1140,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               </div>
 
               <div className="text-center mb-5">
-                <h3 className="text-xl font-bold text-gray-900">{viewingProfileId}</h3>
+                <h3 className="text-xl font-bold text-gray-900">{getDisplayName(viewingProfileId)}</h3>
                 {allProfiles[viewingProfileId]?.bio && (
                   <p className="text-gray-600 mt-1 text-sm italic leading-tight">"{allProfiles[viewingProfileId].bio}"</p>
                 )}
@@ -1119,6 +1212,28 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                     <MessageSquare className="w-4 h-4" />
                     মেসেজ পাঠান
                   </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => {
+                        initiateCall(userId, viewingProfileId, 'audio');
+                        setViewingProfileId(null);
+                      }}
+                      className="flex-1 bg-blue-50 text-blue-600 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-blue-100 transition-all"
+                    >
+                      <Phone className="w-4 h-4" />
+                      অডিও কল
+                    </button>
+                    <button 
+                      onClick={() => {
+                        initiateCall(userId, viewingProfileId, 'video');
+                        setViewingProfileId(null);
+                      }}
+                      className="flex-1 bg-blue-50 text-blue-600 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-blue-100 transition-all"
+                    >
+                      <Video className="w-4 h-4" />
+                      ভিডিও কল
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1165,7 +1280,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               </div>
 
               <div className="text-center mb-5">
-                <h3 className="text-xl font-bold text-gray-900">{userId}</h3>
+                <h3 className="text-xl font-bold text-gray-900">{getDisplayName(userId)}</h3>
                 {userProfile?.bio && (
                   <p className="text-gray-600 mt-1 text-sm italic leading-tight">"{userProfile.bio}"</p>
                 )}
@@ -1205,6 +1320,26 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                     <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">লিঙ্গ</p>
                     <p className="text-sm font-medium">{userProfile?.gender || 'উল্লেখ নেই'}</p>
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-600">
+                      <Bell className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">পুশ নোটিফিকেশন</p>
+                      <p className="text-sm font-medium">{userProfile?.fcmToken ? 'চালু আছে' : 'বন্ধ আছে'}</p>
+                    </div>
+                  </div>
+                  {!userProfile?.fcmToken && (
+                    <button 
+                      onClick={() => requestNotificationPermission(userId)}
+                      className="text-[10px] font-black text-[#1D4ED8] uppercase tracking-wider hover:underline"
+                    >
+                      চালু করুন
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1257,11 +1392,22 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                     onChange={handleProfileImageChange} 
                   />
                 </div>
-                <h4 className="mt-4 font-bold text-xl">{userId}</h4>
+                <h4 className="mt-4 font-bold text-xl">{getDisplayName(userId)}</h4>
                 <p className="text-gray-500 text-sm">আপনার প্রোফাইল তথ্য পরিবর্তন করুন</p>
               </div>
 
               <form onSubmit={handleUpdateProfile} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-gray-700">ডিসপ্লে নেম (Display Name)</label>
+                  <input 
+                    type="text" 
+                    value={profileFormData.displayName}
+                    onChange={(e) => setProfileFormData({ ...profileFormData, displayName: e.target.value })}
+                    placeholder="আপনার নাম লিখুন"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#1D4ED8] transition-all"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-gray-700">বায়ো (Bio)</label>
                   <textarea 
@@ -1367,7 +1513,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                             </div>
                           )}
                         </div>
-                        <span className="font-bold text-gray-800">{resId}</span>
+                        <span className="font-bold text-gray-800">{getDisplayName(resId)}</span>
                       </div>
                       <button 
                         onClick={() => handleSendFriendRequestTo(resId)}
@@ -1392,6 +1538,53 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 সরাসরি রিকোয়েস্ট পাঠান
               </button>
 
+              {suggestedFriends.length > 0 && (
+                <div className="pt-4 border-t border-gray-100">
+                  <h4 className="text-xs font-black text-gray-400 uppercase mb-3 tracking-wider flex items-center gap-2">
+                    <Users className="w-4 h-4" /> আপনার জন্য সাজেশন
+                  </h4>
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                    {suggestedFriends.map((suggestion) => (
+                      <div key={suggestion.userId} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100">
+                            {allProfiles[suggestion.userId]?.profileImageUrl ? (
+                              <img src={allProfiles[suggestion.userId].profileImageUrl} alt={suggestion.userId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                                <User className="w-5 h-5 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-800 text-sm">{getDisplayName(suggestion.userId)}</div>
+                            <div className="text-[10px] text-gray-500 flex flex-wrap gap-1 mt-0.5">
+                              {suggestion.mutualCount > 0 && (
+                                <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-medium">
+                                  {suggestion.mutualCount} জন মিউচুয়াল বন্ধু
+                                </span>
+                              )}
+                              {suggestion.commonInterests.map(interest => (
+                                <span key={interest} className="bg-green-50 text-green-600 px-1.5 py-0.5 rounded-full font-medium">
+                                  #{interest}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => handleSendFriendRequestTo(suggestion.userId)}
+                          className="p-2 bg-blue-50 text-[#1D4ED8] rounded-lg hover:bg-blue-100 transition-colors"
+                          title="রিকোয়েস্ট পাঠান"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {incomingRequests.length > 0 && (
                 <div className="pt-4 border-t border-gray-100">
                   <h4 className="font-bold mb-3">আগত রিকোয়েস্ট</h4>
@@ -1402,7 +1595,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                           <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
                             <User className="w-6 h-6 text-gray-500" />
                           </div>
-                          <span className="font-bold">{req.fromUserId}</span>
+                          <span className="font-bold">{getDisplayName(req.fromUserId)}</span>
                         </div>
                         <div className="flex gap-2">
                           <button 
@@ -1454,7 +1647,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                               </div>
                             )}
                           </div>
-                          <span className="font-bold text-gray-800">{req.fromUserId}</span>
+                          <span className="font-bold text-gray-800">{getDisplayName(req.fromUserId)}</span>
                         </div>
                         <div className="flex gap-2">
                           <button 
@@ -1508,7 +1701,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                         setShowFriendsList(false);
                       }}
                     >
-                      <p className="font-bold text-gray-800 group-hover:text-[#1D4ED8] transition-colors">{friendId}</p>
+                      <p className="font-bold text-gray-800 group-hover:text-[#1D4ED8] transition-colors">{getDisplayName(friendId)}</p>
                       {allProfiles[friendId]?.location && (
                         <p className="text-[10px] text-gray-500">{allProfiles[friendId].location}</p>
                       )}
@@ -1524,13 +1717,71 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                     >
                       <MessageSquare className="w-5 h-5" />
                     </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        initiateCall(userId, friendId, 'audio');
+                        setShowFriendsList(false);
+                      }}
+                      className="p-2 hover:bg-blue-50 text-blue-600 rounded-full transition-colors"
+                      title="অডিও কল"
+                    >
+                      <Phone className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        initiateCall(userId, friendId, 'video');
+                        setShowFriendsList(false);
+                      }}
+                      className="p-2 hover:bg-blue-50 text-blue-600 rounded-full transition-colors"
+                      title="ভিডিও কল"
+                    >
+                      <Video className="w-5 h-5" />
+                    </button>
                     {unreadCounts[friendId] > 0 && (
-                      <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">
+                      <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full animate-badge-pulse shadow-sm">
                         {unreadCounts[friendId]}
                       </span>
                     )}
                   </div>
                 ))
+              )}
+              {suggestedFriends.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <h4 className="text-xs font-black text-gray-400 uppercase mb-4 ml-2 tracking-wider flex items-center gap-2">
+                    <Users className="w-4 h-4" /> আপনার জন্য সাজেশন
+                  </h4>
+                  <div className="space-y-3">
+                    {suggestedFriends.slice(0, 5).map((suggestion) => (
+                      <div key={suggestion.userId} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100">
+                            {allProfiles[suggestion.userId]?.profileImageUrl ? (
+                              <img src={allProfiles[suggestion.userId].profileImageUrl} alt={suggestion.userId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                                <User className="w-5 h-5 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-800 text-sm">{suggestion.userId}</div>
+                            <div className="text-[9px] text-gray-500">
+                              {suggestion.mutualCount > 0 ? `${suggestion.mutualCount} জন মিউচুয়াল বন্ধু` : suggestion.commonInterests.length > 0 ? `#${suggestion.commonInterests[0]}` : 'নতুন বন্ধু'}
+                            </div>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => handleSendFriendRequestTo(suggestion.userId)}
+                          className="p-2 bg-blue-50 text-[#1D4ED8] rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
             <div className="p-4 border-t border-gray-100">
@@ -1814,7 +2065,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                   )}
                 </div>
                 <div>
-                  <p className="font-bold text-gray-900">{userId}</p>
+                  <p className="font-bold text-gray-900">{getDisplayName(userId)}</p>
                   <div className="bg-gray-200 px-2 py-0.5 rounded flex items-center gap-1 text-xs font-bold w-fit">
                     <Users className="w-3 h-3" /> বন্ধুরা
                   </div>
@@ -1824,7 +2075,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder={`${userId}, আপনি এখন কী ভাবছেন?`}
+                placeholder={`${getDisplayName(userId)}, আপনি এখন কী ভাবছেন?`}
                 className="w-full min-h-[150px] text-xl outline-none resize-none placeholder-gray-500"
               />
 
@@ -1902,7 +2153,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 <input type="file" accept="image/*" className="hidden" ref={profileInputRef} onChange={handleProfileImageChange} />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">{userId}</h2>
+                <h2 className="text-2xl font-bold">{getDisplayName(userId)}</h2>
                 <p className="text-gray-500">আপনার প্রোফাইল ছবি পরিবর্তন করুন</p>
               </div>
               <button 
@@ -1921,6 +2172,15 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
           userId={userId} 
           friendId={activeChatFriend} 
           onClose={() => setActiveChatFriend(null)} 
+        />
+      )}
+
+      {activeCall && (
+        <CallWindow 
+          userId={userId} 
+          call={activeCall} 
+          friendProfile={allProfiles[activeCall.fromUserId === userId ? activeCall.toUserId : activeCall.fromUserId] || null}
+          onClose={() => setActiveCall(null)}
         />
       )}
     </div>

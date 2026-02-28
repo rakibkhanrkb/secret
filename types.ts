@@ -20,6 +20,7 @@ export interface Reply {
 export interface RegistrationRequest {
   id: string;
   name: string;
+  displayName: string;
   mobile: string;
   email: string;
   status: 'pending' | 'approved';
@@ -47,11 +48,13 @@ export interface ChatMessage {
 
 export interface UserProfile {
   userId: string;
+  displayName: string;
   profileImageUrl?: string;
   bio?: string;
   location?: string;
   birthDate?: string;
   gender?: string;
+  fcmToken?: string;
   updatedAt: number;
 }
 
@@ -59,15 +62,34 @@ export interface Notification {
   id: string;
   toUserId: string;
   fromUserId: string;
-  type: 'request_accepted' | 'unfriended' | 'new_message';
+  type: 'request_accepted' | 'unfriended' | 'new_message' | 'missed_call';
   message: string;
   read: boolean;
+  createdAt: number;
+}
+
+export interface Call {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  type: 'audio' | 'video';
+  status: 'ringing' | 'accepted' | 'rejected' | 'ended';
+  createdAt: number;
+  endedAt?: number;
+}
+
+export interface CallSignal {
+  id: string;
+  type: 'offer' | 'answer' | 'candidate';
+  data: any;
+  fromUserId: string;
   createdAt: number;
 }
 
 export interface UserAccount {
   id: string;
   userId: string;
+  displayName: string;
   password: string;
   mobile: string;
   createdAt: number;

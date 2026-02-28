@@ -12,3 +12,13 @@ body {
   @apply bg-fb-bg text-gray-900 antialiased;
   font-family: var(--font-sans);
 }
+
+@keyframes badge-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.animate-badge-pulse {
+  animation: badge-pulse 1.5s infinite ease-in-out;
+}

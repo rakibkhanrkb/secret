@@ -1,7 +1,8 @@
 
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, Timestamp, where, deleteDoc, getDocs, deleteField } from 'firebase/firestore';
-import { Post, Reply, RegistrationRequest, FriendRequest, ChatMessage, Notification, UserProfile, UserAccount } from '../types';
+import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
+import { Post, Reply, RegistrationRequest, FriendRequest, ChatMessage, Notification, UserProfile, UserAccount, Call, CallSignal } from '../types';
 
 // These should be replaced with actual config from user later
 const firebaseConfig = {
@@ -19,6 +20,15 @@ if (!firebaseConfig.apiKey) {
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+let messaging: Messaging | null = null;
+
+try {
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    messaging = getMessaging(app);
+  }
+} catch (error) {
+  console.error("Firebase Messaging initialization failed:", error);
+}
 
 export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
@@ -28,6 +38,8 @@ const FRIEND_REQUESTS_COLLECTION = 'friend_requests';
 const CHAT_MESSAGES_COLLECTION = 'chat_messages';
 const NOTIFICATIONS_COLLECTION = 'notifications';
 const USER_PROFILES_COLLECTION = 'user_profiles';
+const CALLS_COLLECTION = 'calls';
+const CALL_SIGNALS_COLLECTION = 'call_signals';
 const USER_ACCOUNTS_COLLECTION = 'user_accounts';
 
 export const createPost = async (userId: string, content: string, imageUrl?: string) => {
@@ -345,6 +357,127 @@ export const subscribeToChat = (userId1: string, userId2: string, callback: (mes
   });
 };
 
+export const deleteChatMessage = async (messageId: string) => {
+  try {
+    await deleteDoc(doc(db, CHAT_MESSAGES_COLLECTION, messageId));
+  } catch (error) {
+    console.error("Error deleting chat message:", error);
+    throw error;
+  }
+};
+
+export const initiateCall = async (fromUserId: string, toUserId: string, type: 'audio' | 'video') => {
+  try {
+    const callRef = await addDoc(collection(db, CALLS_COLLECTION), {
+      fromUserId,
+      toUserId,
+      type,
+      status: 'ringing',
+      createdAt: Date.now()
+    });
+    return callRef.id;
+  } catch (error) {
+    console.error("Error initiating call:", error);
+    throw error;
+  }
+};
+
+export const respondToCall = async (callId: string, status: 'accepted' | 'rejected') => {
+  try {
+    await updateDoc(doc(db, CALLS_COLLECTION, callId), { status });
+  } catch (error) {
+    console.error("Error responding to call:", error);
+    throw error;
+  }
+};
+
+export const endCall = async (callId: string) => {
+  try {
+    await updateDoc(doc(db, CALLS_COLLECTION, callId), { 
+      status: 'ended',
+      endedAt: Date.now()
+    });
+  } catch (error) {
+    console.error("Error ending call:", error);
+    throw error;
+  }
+};
+
+export const subscribeToActiveCalls = (userId: string, callback: (call: Call | null) => void) => {
+  const q1 = query(
+    collection(db, CALLS_COLLECTION),
+    where('toUserId', '==', userId),
+    where('status', 'in', ['ringing', 'accepted']),
+    orderBy('createdAt', 'desc')
+  );
+
+  const q2 = query(
+    collection(db, CALLS_COLLECTION),
+    where('fromUserId', '==', userId),
+    where('status', 'in', ['ringing', 'accepted']),
+    orderBy('createdAt', 'desc')
+  );
+
+  let call1: Call | null = null;
+  let call2: Call | null = null;
+
+  const unsub1 = onSnapshot(q1, (snapshot) => {
+    call1 = snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Call;
+    callback(call1 || call2);
+  });
+
+  const unsub2 = onSnapshot(q2, (snapshot) => {
+    call2 = snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Call;
+    callback(call1 || call2);
+  });
+
+  return () => {
+    unsub1();
+    unsub2();
+  };
+};
+
+export const subscribeToCallStatus = (callId: string, callback: (call: Call) => void) => {
+  return onSnapshot(doc(db, CALLS_COLLECTION, callId), (doc) => {
+    if (doc.exists()) {
+      callback({ id: doc.id, ...doc.data() } as Call);
+    }
+  });
+};
+
+export const sendCallSignal = async (callId: string, type: CallSignal['type'], data: any, fromUserId: string) => {
+  try {
+    await addDoc(collection(db, CALLS_COLLECTION, callId, CALL_SIGNALS_COLLECTION), {
+      type,
+      data: JSON.stringify(data),
+      fromUserId,
+      createdAt: Date.now()
+    });
+  } catch (error) {
+    console.error("Error sending call signal:", error);
+    throw error;
+  }
+};
+
+export const subscribeToCallSignals = (callId: string, callback: (signals: CallSignal[]) => void) => {
+  const q = query(
+    collection(db, CALLS_COLLECTION, callId, CALL_SIGNALS_COLLECTION),
+    orderBy('createdAt', 'asc')
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const signals = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        data: JSON.parse(data.data)
+      } as CallSignal;
+    });
+    callback(signals);
+  });
+};
+
 export const createNotification = async (toUserId: string, fromUserId: string, type: Notification['type'], message: string) => {
   try {
     await addDoc(collection(db, NOTIFICATIONS_COLLECTION), {
@@ -386,6 +519,55 @@ export const deleteNotification = async (notificationId: string) => {
   }
 };
 
+export const subscribeToAllFriendships = (callback: (friendships: {u1: string, u2: string}[]) => void) => {
+  const q = query(
+    collection(db, FRIEND_REQUESTS_COLLECTION),
+    where('status', '==', 'accepted')
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const friendships = snapshot.docs.map(doc => {
+      const data = doc.data() as FriendRequest;
+      return { u1: data.fromUserId, u2: data.toUserId };
+    });
+    callback(friendships);
+  });
+};
+
+export const requestNotificationPermission = async (userId: string) => {
+  if (!messaging) return;
+
+  try {
+    const permission = await window.Notification.requestPermission();
+    if (permission === 'granted') {
+      const token = await getToken(messaging, {
+        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || "BPE_Placeholder_Vapid_Key"
+      });
+      
+      if (token) {
+        const q = query(collection(db, USER_PROFILES_COLLECTION), where('userId', '==', userId));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          await updateDoc(doc(db, USER_PROFILES_COLLECTION, snapshot.docs[0].id), {
+            fcmToken: token,
+            updatedAt: Date.now()
+          });
+        }
+        return token;
+      }
+    }
+  } catch (error) {
+    console.error("Error requesting notification permission:", error);
+  }
+  return null;
+};
+
+export const onForegroundMessage = (callback: (payload: any) => void) => {
+  if (!messaging) return () => {};
+  return onMessage(messaging, (payload) => {
+    callback(payload);
+  });
+};
 export const subscribeToFriends = (userId: string, callback: (friendIds: string[]) => void) => {
   // Friends are those where (fromUserId == userId OR toUserId == userId) AND status == 'accepted'
   const q1 = query(
@@ -455,10 +637,11 @@ export const checkMobileExists = async (mobile: string): Promise<boolean> => {
   return !snapshot.empty;
 };
 
-export const registerUser = async (userId: string, password: string, mobile: string) => {
+export const registerUser = async (userId: string, password: string, mobile: string, displayName: string) => {
   try {
     await addDoc(collection(db, USER_ACCOUNTS_COLLECTION), {
       userId,
+      displayName,
       password,
       mobile,
       createdAt: Date.now()
@@ -466,6 +649,7 @@ export const registerUser = async (userId: string, password: string, mobile: str
     // Create an initial profile
     await addDoc(collection(db, USER_PROFILES_COLLECTION), {
       userId,
+      displayName,
       profileImageUrl: null,
       updatedAt: Date.now()
     });
@@ -722,6 +906,7 @@ export const updateUserProfile = async (userId: string, data: Partial<UserProfil
     if (snapshot.empty) {
       await addDoc(collection(db, USER_PROFILES_COLLECTION), {
         userId,
+        displayName: userId, // Fallback if not provided
         ...data,
         updatedAt: Date.now()
       });
@@ -731,6 +916,16 @@ export const updateUserProfile = async (userId: string, data: Partial<UserProfil
         ...data,
         updatedAt: Date.now()
       });
+    }
+
+    // Also update displayName in UserAccount if it's being updated
+    if (data.displayName) {
+      const accountQ = query(collection(db, USER_ACCOUNTS_COLLECTION), where('userId', '==', userId));
+      const accountSnap = await getDocs(accountQ);
+      if (!accountSnap.empty) {
+        const accountDocRef = doc(db, USER_ACCOUNTS_COLLECTION, accountSnap.docs[0].id);
+        await updateDoc(accountDocRef, { displayName: data.displayName });
+      }
     }
   } catch (error) {
     console.error("Error updating user profile:", error);

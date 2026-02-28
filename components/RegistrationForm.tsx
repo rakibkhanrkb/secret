@@ -10,6 +10,7 @@ interface RegistrationFormProps {
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ onBack }) => {
   const [formData, setFormData] = useState({
     userId: '',
+    displayName: '',
     mobile: '',
     password: '',
     confirmPassword: ''
@@ -22,19 +23,19 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onBack }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { userId, mobile, password, confirmPassword } = formData;
+    const { userId, displayName, mobile, password, confirmPassword } = formData;
 
     setUserIdError(false);
     setMobileError(false);
 
-    if (!userId || !mobile || !password || !confirmPassword) {
+    if (!userId || !displayName || !mobile || !password || !confirmPassword) {
       alert('সবগুলো ঘর পূরণ করো!');
       return;
     }
 
     // Mobile number validation: 11 digits, English only
     const mobileRegex = /^\d{11}$/;
-    if (!mobileRegex.test(mobile)) {
+    if (!mobileRegex.test(mobile) || !/^\d+$/.test(mobile)) {
       alert('মোবাইল নাম্বার অবশ্যই ১১ সংখ্যার এবং ইংরেজিতে হতে হবে!');
       return;
     }
@@ -65,7 +66,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onBack }) => {
         return;
       }
 
-      await registerUser(userId, password, mobile);
+      await registerUser(userId, password, mobile, displayName);
       setIsSuccess(true);
     } catch (error) {
       alert('রেজিস্ট্রেশন করতে সমস্যা হয়েছে। আবার চেষ্টা করো।');
@@ -112,6 +113,16 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onBack }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1">
+            <input
+              type="text"
+              value={formData.displayName}
+              onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+              placeholder="ডিসপ্লে নেম [যেমন: রাকিব হাসান]"
+              className="w-full px-4 py-3 bg-[#F5F6F7] rounded-md border border-gray-300 outline-none focus:ring-1 focus:ring-[#1D4ED8] transition-all"
+            />
+          </div>
+
           <div className="space-y-1">
             <input
               type="text"
