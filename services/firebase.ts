@@ -478,8 +478,13 @@ export const subscribeToActiveCalls = (userId: string, callback: (call: Call | n
 
   const processSnapshot = (snapshot: any) => {
     const calls = snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() } as Call));
-    calls.sort((a: Call, b: Call) => b.createdAt - a.createdAt);
-    return calls.length > 0 ? calls[0] : null;
+    
+    // Filter out stale calls (older than 2 minutes)
+    const now = Date.now();
+    const validCalls = calls.filter((c: Call) => (now - c.createdAt) < 2 * 60 * 1000);
+    
+    validCalls.sort((a: Call, b: Call) => b.createdAt - a.createdAt);
+    return validCalls.length > 0 ? validCalls[0] : null;
   };
 
   const unsub1 = onSnapshot(q1, (snapshot) => {
