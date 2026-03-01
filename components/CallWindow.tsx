@@ -21,6 +21,7 @@ const CallWindow: React.FC<CallWindowProps> = ({ userId, call, friendProfile, on
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const processedSignals = useRef<Set<string>>(new Set());
 
@@ -165,6 +166,12 @@ const CallWindow: React.FC<CallWindowProps> = ({ userId, call, friendProfile, on
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream, status]);
+
+  useEffect(() => {
+    if (remoteAudioRef.current && remoteStream) {
+      remoteAudioRef.current.srcObject = remoteStream;
     }
   }, [remoteStream, status]);
 
@@ -368,6 +375,10 @@ const CallWindow: React.FC<CallWindowProps> = ({ userId, call, friendProfile, on
             </div>
           )}
         </div>
+        {/* Audio Element for Audio Calls */}
+        {call.type === 'audio' && status === 'accepted' && (
+          <audio ref={remoteAudioRef} autoPlay playsInline />
+        )}
       </div>
     </div>
   );

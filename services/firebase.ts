@@ -958,6 +958,23 @@ export const subscribeToUserProfile = (userId: string, callback: (profile: UserP
   });
 };
 
+export const updateUserPresence = async (userId: string, isOnline: boolean) => {
+  try {
+    const q = query(collection(db, USER_PROFILES_COLLECTION), where('userId', '==', userId));
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+      const docRef = doc(db, USER_PROFILES_COLLECTION, snapshot.docs[0].id);
+      await updateDoc(docRef, {
+        isOnline,
+        lastSeen: Date.now()
+      });
+    }
+  } catch (error) {
+    console.error("Error updating user presence:", error);
+  }
+};
+
 export const subscribeToAllUserProfiles = (callback: (profiles: { [userId: string]: UserProfile }) => void) => {
   const q = query(collection(db, USER_PROFILES_COLLECTION));
   return onSnapshot(q, (snapshot) => {

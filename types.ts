@@ -57,6 +57,8 @@ export interface UserProfile {
   gender?: string;
   fcmToken?: string;
   updatedAt: number;
+  isOnline?: boolean;
+  lastSeen?: number;
 }
 
 export interface Notification {

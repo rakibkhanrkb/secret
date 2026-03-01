@@ -169,11 +169,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
                 <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </div>
             )}
-            <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-white dark:border-gray-800 rounded-full"></div>
+            {friendProfile?.isOnline && (Date.now() - (friendProfile?.lastSeen || 0) < 120000) && (
+              <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-white dark:border-gray-800 rounded-full animate-pulse"></div>
+            )}
           </div>
           <div>
             <h3 className="font-bold text-sm text-gray-900 dark:text-white">{friendProfile?.displayName || friendId}</h3>
-            <p className="text-[10px] text-green-500 font-medium">সক্রিয় আছেন</p>
+            {friendProfile?.isOnline && (Date.now() - (friendProfile?.lastSeen || 0) < 120000) ? (
+              <p className="text-[10px] text-green-500 font-medium">সক্রিয় আছেন</p>
+            ) : (
+              <p className="text-[10px] text-gray-400 font-medium">অফলাইন</p>
+            )}
           </div>
         </div>
         <div className="flex gap-1">

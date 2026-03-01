@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, subscribeToSentFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles, toggleReaction, removeReaction, subscribeToAllUserIds, subscribeToAllUserAccounts, updateUserAccount, deleteUserAccount, subscribeToRegistrationRequests, subscribeToAllFriendships, subscribeToActiveCalls, subscribeToCallStatus, initiateCall, requestNotificationPermission, onForegroundMessage, sendChatMessage } from '../services/firebase';
+import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, subscribeToSentFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles, toggleReaction, removeReaction, subscribeToAllUserIds, subscribeToAllUserAccounts, updateUserAccount, deleteUserAccount, subscribeToRegistrationRequests, subscribeToAllFriendships, subscribeToActiveCalls, subscribeToCallStatus, initiateCall, requestNotificationPermission, onForegroundMessage, sendChatMessage, updateUserPresence } from '../services/firebase';
 import { Post, FriendRequest, Notification, UserProfile, UserAccount, RegistrationRequest, Call } from '../types';
 import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2, Edit, MapPin, Calendar, Info, Shield, Key, Phone, Lock, PhoneOff, Mic, MicOff, VideoOff, Moon, Sun } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -77,6 +77,26 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
+
+  // Presence logic
+  useEffect(() => {
+    if (!userId) return;
+
+    // Set online immediately
+    updateUserPresence(userId, true);
+
+    // Heartbeat every 60 seconds
+    const interval = setInterval(() => {
+      updateUserPresence(userId, true);
+    }, 60000);
+
+    // Set offline on unmount
+    return () => {
+      clearInterval(interval);
+      updateUserPresence(userId, false);
+    };
+  }, [userId]);
+
   const [hoveredPostId, setHoveredPostId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1072,7 +1092,9 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                         <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                       </div>
                     )}
-                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                    {allProfiles[friendId]?.isOnline && (Date.now() - (allProfiles[friendId]?.lastSeen || 0) < 120000) && (
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full animate-pulse"></div>
+                    )}
                   </div>
                   <span 
                     onClick={() => setActiveChatFriend(friendId)}
@@ -1802,7 +1824,9 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                           <User className="w-6 h-6 text-gray-500 dark:text-gray-400" />
                         </div>
                       )}
-                      <div className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 dark:bg-green-400 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                      {allProfiles[friendId]?.isOnline && (Date.now() - (allProfiles[friendId]?.lastSeen || 0) < 120000) && (
+                        <div className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 dark:bg-green-400 border-2 border-white dark:border-gray-800 rounded-full animate-pulse"></div>
+                      )}
                     </div>
                     <div 
                       className="flex-1"
