@@ -76,13 +76,12 @@ const CallWindow: React.FC<CallWindowProps> = ({ userId, call, friendProfile, on
         video: call.type === 'video'
       });
       setLocalStream(stream);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
+      return stream;
     } catch (error) {
       console.error("Error accessing media devices:", error);
       alert("Media devices access denied.");
       handleEndCall();
+      return null;
     }
   };
 
@@ -91,24 +90,19 @@ const CallWindow: React.FC<CallWindowProps> = ({ userId, call, friendProfile, on
 
     peerConnection.current = new RTCPeerConnection(configuration);
 
-    // Add local tracks
-    if (localStream) {
-      localStream.getTracks().forEach(track => {
-        peerConnection.current?.addTrack(track, localStream);
-      });
-    } else {
-      // If stream not started yet (e.g. receiver just accepted)
-      await startCall();
-      localStream?.getTracks().forEach(track => {
-        peerConnection.current?.addTrack(track, localStream);
+    let stream = localStream;
+    if (!stream) {
+      stream = await startCall();
+    }
+    
+    if (stream) {
+      stream.getTracks().forEach(track => {
+        peerConnection.current?.addTrack(track, stream!);
       });
     }
 
     peerConnection.current.ontrack = (event) => {
       setRemoteStream(event.streams[0]);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-      }
     };
 
     peerConnection.current.onicecandidate = (event) => {
@@ -149,6 +143,18 @@ const CallWindow: React.FC<CallWindowProps> = ({ userId, call, friendProfile, on
 
     return unsubSignals;
   };
+
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream, status, isVideoOff]);
+
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream, status]);
 
   const handleAccept = async () => {
     try {

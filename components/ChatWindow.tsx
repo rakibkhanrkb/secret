@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { sendChatMessage, subscribeToChat, markMessagesAsRead, subscribeToUserProfile, deleteChatMessage, initiateCall } from '../services/firebase';
-import { Send, X, User, ArrowLeft, Image as ImageIcon, Loader2, Check, Trash2, Phone, Video } from 'lucide-react';
+import { sendChatMessage, subscribeToChat, markMessagesAsRead, subscribeToUserProfile, deleteChatMessage, initiateCall, setTypingStatus, subscribeToTypingStatus, getPost } from '../services/firebase';
+import { Send, X, User, ArrowLeft, Image as ImageIcon, Loader2, Check, Trash2, Phone, Video, Share2 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
-import { ChatMessage, UserProfile } from '../types';
+import { ChatMessage, UserProfile, Post } from '../types';
 import { compressImage } from '@/src/utils/imageUtils';
 
 interface ChatWindowProps {
@@ -19,6 +19,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [friendTyping, setFriendTyping] = useState(false);
+  const [sharedPosts, setSharedPosts] = useState<{ [postId: string]: Post }>({});
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -47,20 +51,56 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
     const unsubscribe = subscribeToChat(userId, friendId, setMessages);
     const unsubFriendProfile = subscribeToUserProfile(friendId, setFriendProfile);
     const unsubUserProfile = subscribeToUserProfile(userId, setUserProfile);
+    const unsubTyping = subscribeToTypingStatus(friendId, userId, setFriendTyping);
     markMessagesAsRead(userId, friendId);
     return () => {
       unsubscribe();
       unsubFriendProfile();
       unsubUserProfile();
+      unsubTyping();
     };
   }, [userId, friendId]);
 
   useEffect(() => {
+    // Fetch shared posts content
+    const fetchSharedPosts = async () => {
+      const postIds = messages.filter(m => m.sharedPostId).map(m => m.sharedPostId!) as string[];
+      const uniquePostIds = Array.from(new Set(postIds));
+      
+      for (const postId of uniquePostIds) {
+        if (!sharedPosts[postId]) {
+          const post = await getPost(postId);
+          if (post) {
+            setSharedPosts(prev => ({ ...prev, [postId]: post }));
+          }
+        }
+      }
+    };
+    
     if (messages.length > 0) {
+      fetchSharedPosts();
       markMessagesAsRead(userId, friendId);
     }
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, userId, friendId]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputText(e.target.value);
+    
+    if (!isTyping) {
+      setIsTyping(true);
+      setTypingStatus(userId, friendId, true);
+    }
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      setTypingStatus(userId, friendId, false);
+    }, 2000);
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,6 +231,20 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
                       <img src={msg.imageUrl} alt="Chat" className="w-full max-h-60 object-cover" referrerPolicy="no-referrer" />
                     </div>
                   )}
+                  {msg.sharedPostId && sharedPosts[msg.sharedPostId] && (
+                    <div className="mb-2 p-2 bg-white/10 rounded-lg border border-white/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Share2 className="w-3 h-3 opacity-70" />
+                        <span className="text-xs font-bold opacity-70">শেয়ার করা পোস্ট</span>
+                      </div>
+                      {sharedPosts[msg.sharedPostId].imageUrl && (
+                        <div className="mb-1 rounded-md overflow-hidden h-20 w-full">
+                          <img src={sharedPosts[msg.sharedPostId].imageUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        </div>
+                      )}
+                      <p className="text-xs line-clamp-2 opacity-90">{sharedPosts[msg.sharedPostId].content}</p>
+                    </div>
+                  )}
                   {msg.content && <p className="leading-tight">{msg.content}</p>}
                   <div className="flex items-center justify-end gap-1 mt-1 opacity-70">
                     {msg.fromUserId === userId && (
@@ -213,6 +267,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
               </div>
             </React.Fragment>
           ))
+        )}
+        {friendTyping && (
+          <div className="px-4 py-2 text-xs text-gray-500 italic animate-pulse">
+            {friendProfile?.displayName || 'Friend'} টাইপ করছেন...
+          </div>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -252,7 +311,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
           <input
             type="text"
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
+            onChange={handleInputChange}
             placeholder="মেসেজ লিখুন..."
             className="bg-transparent border-none outline-none flex-1 py-2 text-sm"
           />

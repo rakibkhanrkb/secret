@@ -296,13 +296,14 @@ export const unfriend = async (userId: string, friendId: string) => {
   }
 };
 
-export const sendChatMessage = async (fromUserId: string, toUserId: string, content: string, imageUrl?: string) => {
+export const sendChatMessage = async (fromUserId: string, toUserId: string, content: string, imageUrl?: string, sharedPostId?: string) => {
   try {
     await addDoc(collection(db, CHAT_MESSAGES_COLLECTION), {
       fromUserId,
       toUserId,
       content,
       imageUrl: imageUrl || null,
+      sharedPostId: sharedPostId || null,
       read: false,
       createdAt: Date.now()
     });
@@ -366,6 +367,62 @@ export const deleteChatMessage = async (messageId: string) => {
   }
 };
 
+const TYPING_STATUS_COLLECTION = 'typing_status';
+
+export const setTypingStatus = async (userId: string, friendId: string, isTyping: boolean) => {
+  try {
+    await updateDoc(doc(db, TYPING_STATUS_COLLECTION, userId), {
+      chattingWith: friendId,
+      isTyping: isTyping,
+      lastTyped: Date.now()
+    }).catch(async (e) => {
+      // If doc doesn't exist, create it (using setDoc would be better but updateDoc + catch is fine for now if we want to be safe, or just use setDoc with merge)
+      // Actually, let's use setDoc with merge to be safe and simple
+      const { setDoc } = await import('firebase/firestore'); 
+      await setDoc(doc(db, TYPING_STATUS_COLLECTION, userId), {
+        chattingWith: friendId,
+        isTyping: isTyping,
+        lastTyped: Date.now()
+      }, { merge: true });
+    });
+  } catch (error) {
+    console.error("Error setting typing status:", error);
+  }
+};
+
+export const subscribeToTypingStatus = (friendId: string, currentUserId: string, callback: (isTyping: boolean) => void) => {
+  return onSnapshot(doc(db, TYPING_STATUS_COLLECTION, friendId), (doc) => {
+    if (doc.exists()) {
+      const data = doc.data();
+      if (data.isTyping && data.chattingWith === currentUserId) {
+         const now = Date.now();
+         const lastTyped = data.lastTyped || 0;
+         // If typed within last 5 seconds
+         if (now - lastTyped < 5000) {
+             callback(true);
+             return;
+         }
+      }
+    }
+    callback(false);
+  });
+};
+
+export const getPost = async (postId: string): Promise<Post | null> => {
+  try {
+    const docRef = doc(db, POSTS_COLLECTION, postId);
+    const docSnap = await getDocs(query(collection(db, POSTS_COLLECTION), where('__name__', '==', postId)));
+    if (!docSnap.empty) {
+      const d = docSnap.docs[0];
+      return { id: d.id, ...d.data() } as Post;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching post:", error);
+    return null;
+  }
+};
+
 export const initiateCall = async (fromUserId: string, toUserId: string, type: 'audio' | 'video') => {
   try {
     const callRef = await addDoc(collection(db, CALLS_COLLECTION), {
@@ -407,27 +464,31 @@ export const subscribeToActiveCalls = (userId: string, callback: (call: Call | n
   const q1 = query(
     collection(db, CALLS_COLLECTION),
     where('toUserId', '==', userId),
-    where('status', 'in', ['ringing', 'accepted']),
-    orderBy('createdAt', 'desc')
+    where('status', 'in', ['ringing', 'accepted'])
   );
 
   const q2 = query(
     collection(db, CALLS_COLLECTION),
     where('fromUserId', '==', userId),
-    where('status', 'in', ['ringing', 'accepted']),
-    orderBy('createdAt', 'desc')
+    where('status', 'in', ['ringing', 'accepted'])
   );
 
   let call1: Call | null = null;
   let call2: Call | null = null;
 
+  const processSnapshot = (snapshot: any) => {
+    const calls = snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() } as Call));
+    calls.sort((a: Call, b: Call) => b.createdAt - a.createdAt);
+    return calls.length > 0 ? calls[0] : null;
+  };
+
   const unsub1 = onSnapshot(q1, (snapshot) => {
-    call1 = snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Call;
+    call1 = processSnapshot(snapshot);
     callback(call1 || call2);
   });
 
   const unsub2 = onSnapshot(q2, (snapshot) => {
-    call2 = snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Call;
+    call2 = processSnapshot(snapshot);
     callback(call1 || call2);
   });
 

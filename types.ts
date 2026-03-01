@@ -42,6 +42,7 @@ export interface ChatMessage {
   toUserId: string;
   content: string;
   imageUrl?: string;
+  sharedPostId?: string;
   read: boolean;
   createdAt: number;
 }

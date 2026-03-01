@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, subscribeToSentFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles, toggleReaction, removeReaction, subscribeToAllUserIds, subscribeToAllUserAccounts, updateUserAccount, deleteUserAccount, subscribeToRegistrationRequests, subscribeToAllFriendships, subscribeToActiveCalls, subscribeToCallStatus, initiateCall, requestNotificationPermission, onForegroundMessage } from '../services/firebase';
+import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, subscribeToSentFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles, toggleReaction, removeReaction, subscribeToAllUserIds, subscribeToAllUserAccounts, updateUserAccount, deleteUserAccount, subscribeToRegistrationRequests, subscribeToAllFriendships, subscribeToActiveCalls, subscribeToCallStatus, initiateCall, requestNotificationPermission, onForegroundMessage, sendChatMessage } from '../services/firebase';
 import { Post, FriendRequest, Notification, UserProfile, UserAccount, RegistrationRequest, Call } from '../types';
 import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2, Edit, MapPin, Calendar, Info, Shield, Key, Phone, Lock, PhoneOff, Mic, MicOff, VideoOff } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -18,6 +18,9 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   const [headerSearchInput, setHeaderSearchInput] = useState('');
   const [headerSearchResults, setHeaderSearchResults] = useState<string[]>([]);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [postToShare, setPostToShare] = useState<Post | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareSearchTerm, setShareSearchTerm] = useState('');
   const [showFriendsList, setShowFriendsList] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -445,6 +448,26 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       </div>
     );
   }
+
+  const handleSharePost = async (friendId: string) => {
+    if (!postToShare) return;
+    
+    setIsSharing(true);
+    try {
+      await sendChatMessage(userId, friendId, '', undefined, postToShare.id);
+      alert('পোস্ট শেয়ার করা হয়েছে!');
+      setPostToShare(null);
+    } catch (error) {
+      console.error("Error sharing post:", error);
+      alert('পোস্ট শেয়ার করতে সমস্যা হয়েছে।');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const filteredFriendsForShare = friends.filter(fid => 
+    (getDisplayName(fid) || '').toLowerCase().includes(shareSearchTerm.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-[#F0F2F5] flex flex-col">
@@ -897,7 +920,10 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                       <MessageSquare className="w-5 h-5" />
                       কমেন্ট
                     </button>
-                    <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 font-semibold">
+                    <button 
+                      onClick={() => setPostToShare(post)}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 font-semibold"
+                    >
                       <Share2 className="w-5 h-5" />
                       শেয়ার
                     </button>
@@ -1070,6 +1096,69 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       </main>
 
       {/* Modals & Overlays */}
+      {/* Share Post Modal */}
+      {postToShare && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300 flex flex-col max-h-[80vh]">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white sticky top-0 z-10">
+              <h3 className="font-bold text-lg">পোস্ট শেয়ার করুন</h3>
+              <button 
+                onClick={() => setPostToShare(null)}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="p-4 border-b border-gray-100">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input 
+                  type="text" 
+                  placeholder="বন্ধুদের খুঁজুন..." 
+                  value={shareSearchTerm}
+                  onChange={(e) => setShareSearchTerm(e.target.value)}
+                  className="w-full bg-gray-100 pl-9 pr-4 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-y-auto p-2 space-y-1 flex-1">
+              {filteredFriendsForShare.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 text-sm">
+                  কোনো বন্ধু পাওয়া যায়নি
+                </div>
+              ) : (
+                filteredFriendsForShare.map(friendId => (
+                  <div key={friendId} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
+                        {allProfiles[friendId]?.profileImageUrl ? (
+                          <img src={allProfiles[friendId].profileImageUrl} alt={friendId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                            <User className="w-5 h-5 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      <span className="font-bold text-gray-800 text-sm">{getDisplayName(friendId)}</span>
+                    </div>
+                    <button 
+                      onClick={() => handleSharePost(friendId)}
+                      disabled={isSharing}
+                      className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+                    >
+                      <Send className="w-3 h-3" />
+                      পাঠান
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showNotifications && (
         <div className="fixed top-14 right-4 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-[60] max-h-[80vh] overflow-y-auto">
           <div className="p-4 border-b border-gray-200 flex justify-between items-center">
