@@ -69,18 +69,30 @@ const CallWindow: React.FC<CallWindowProps> = ({ userId, call, friendProfile, on
     setRemoteStream(null);
   };
 
-  const startCall = async () => {
+  const [error, setError] = useState<string | null>(null);
+
+  const startCall = async (retryAudioOnly = false) => {
+    setError(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      const constraints = {
         audio: true,
-        video: call.type === 'video'
-      });
+        video: retryAudioOnly ? false : call.type === 'video'
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setLocalStream(stream);
       return stream;
-    } catch (error) {
-      console.error("Error accessing media devices:", error);
-      alert("Media devices access denied.");
-      handleEndCall();
+    } catch (err: any) {
+      console.error("Error accessing media devices:", err);
+      
+      if (call.type === 'video' && !retryAudioOnly) {
+        // Try falling back to audio only
+        console.log("Falling back to audio only...");
+        return startCall(true);
+      }
+      
+      setError("ক্যামেরা বা মাইক্রোফোন অ্যাক্সেস করতে সমস্যা হচ্ছে। দয়া করে পারমিশন চেক করুন।");
+      // Do NOT end the call automatically. Let the user decide.
       return null;
     }
   };
@@ -247,6 +259,19 @@ const CallWindow: React.FC<CallWindowProps> = ({ userId, call, friendProfile, on
           </div>
           <div className="w-9" /> {/* Spacer */}
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="absolute top-20 left-4 right-4 bg-red-500/90 text-white p-3 rounded-lg z-50 text-center text-sm">
+            {error}
+            <button 
+              onClick={() => startCall()}
+              className="ml-2 underline font-bold"
+            >
+              আবার চেষ্টা করুন
+            </button>
+          </div>
+        )}
 
         {/* Video Area */}
         <div className="flex-1 relative bg-gray-800 flex items-center justify-center overflow-hidden">

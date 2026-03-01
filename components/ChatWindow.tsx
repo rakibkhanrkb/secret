@@ -154,55 +154,55 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
   };
 
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-4 z-[100] w-[95%] max-w-[340px] md:w-72 h-[70vh] md:h-[400px] bg-white rounded-t-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-4 z-[100] w-[95%] max-w-[340px] md:w-72 h-[70vh] md:h-[400px] bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-2 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2 hover:bg-gray-100 p-1 rounded-lg cursor-pointer transition-colors flex-1">
-          <button onClick={onClose} className="md:hidden p-1 hover:bg-gray-200 rounded-full mr-1">
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-2 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded-lg cursor-pointer transition-colors flex-1">
+          <button onClick={onClose} className="md:hidden p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full mr-1">
+            <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
           </button>
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 relative">
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 dark:border-gray-600 relative">
             {friendProfile?.profileImageUrl ? (
               <img src={friendProfile.profileImageUrl} alt={friendId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <User className="w-5 h-5 text-gray-500" />
+              <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </div>
             )}
-            <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-white rounded-full"></div>
+            <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-white dark:border-gray-800 rounded-full"></div>
           </div>
           <div>
-            <h3 className="font-bold text-sm text-gray-900">{friendProfile?.displayName || friendId}</h3>
+            <h3 className="font-bold text-sm text-gray-900 dark:text-white">{friendProfile?.displayName || friendId}</h3>
             <p className="text-[10px] text-green-500 font-medium">সক্রিয় আছেন</p>
           </div>
         </div>
         <div className="flex gap-1">
           <button 
             onClick={() => handleStartCall('audio')}
-            className="p-1.5 hover:bg-gray-100 rounded-full text-[#1D4ED8]"
+            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-[#1D4ED8] dark:text-blue-400"
             title="অডিও কল"
           >
             <Phone className="w-5 h-5" />
           </button>
           <button 
             onClick={() => handleStartCall('video')}
-            className="p-1.5 hover:bg-gray-100 rounded-full text-[#1D4ED8]"
+            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-[#1D4ED8] dark:text-blue-400"
             title="ভিডিও কল"
           >
             <Video className="w-5 h-5" />
           </button>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full text-[#1D4ED8]">
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-[#1D4ED8] dark:text-blue-400">
             <X className="w-5 h-5" />
           </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-white scrollbar-thin scrollbar-thumb-gray-200">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-white dark:bg-gray-900 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-2">
-            <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
-              <User className="w-8 h-8 text-gray-200" />
+          <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 space-y-2">
+            <div className="w-16 h-16 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+              <User className="w-8 h-8 text-gray-200 dark:text-gray-600" />
             </div>
             <p className="text-xs font-medium">চ্যাট শুরু করুন</p>
           </div>
@@ -211,7 +211,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
             <React.Fragment key={msg.id}>
               {shouldShowDateSeparator(index) && (
                 <div className="flex justify-center my-4">
-                  <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                  <span className="bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                     {getDateSeparatorLabel(msg.createdAt)}
                   </span>
                 </div>
@@ -222,17 +222,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
                 <div
                   className={`max-w-[85%] p-2.5 px-3 rounded-2xl text-sm ${
                     msg.fromUserId === userId
-                      ? 'bg-[#1D4ED8] text-white'
-                      : 'bg-[#F0F2F5] text-gray-900'
+                      ? 'bg-[#1D4ED8] dark:bg-blue-600 text-white'
+                      : 'bg-[#F0F2F5] dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                   }`}
                 >
                   {msg.imageUrl && (
-                    <div className="mb-2 rounded-lg overflow-hidden border border-white/20">
+                    <div className="mb-2 rounded-lg overflow-hidden border border-white/20 dark:border-gray-700">
                       <img src={msg.imageUrl} alt="Chat" className="w-full max-h-60 object-cover" referrerPolicy="no-referrer" />
                     </div>
                   )}
                   {msg.sharedPostId && sharedPosts[msg.sharedPostId] && (
-                    <div className="mb-2 p-2 bg-white/10 rounded-lg border border-white/20">
+                    <div className="mb-2 p-2 bg-white/10 dark:bg-black/20 rounded-lg border border-white/20 dark:border-white/10">
                       <div className="flex items-center gap-2 mb-1">
                         <Share2 className="w-3 h-3 opacity-70" />
                         <span className="text-xs font-bold opacity-70">শেয়ার করা পোস্ট</span>
@@ -269,7 +269,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
           ))
         )}
         {friendTyping && (
-          <div className="px-4 py-2 text-xs text-gray-500 italic animate-pulse">
+          <div className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 italic animate-pulse">
             {friendProfile?.displayName || 'Friend'} টাইপ করছেন...
           </div>
         )}
@@ -278,8 +278,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
 
       {/* Image Preview */}
       {selectedImage && (
-        <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 relative">
-          <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+        <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 relative">
+          <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
             <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             <button 
               onClick={() => setSelectedImage(null)}
@@ -292,7 +292,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
       )}
 
       {/* Input */}
-      <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-100 flex gap-2 items-center">
+      <form onSubmit={handleSend} className="p-3 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex gap-2 items-center">
         <input 
           type="file" 
           accept="image/*" 
@@ -303,23 +303,23 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
         <button 
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+          className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
         >
           <ImageIcon className="w-5 h-5" />
         </button>
-        <div className="flex-1 bg-[#F0F2F5] rounded-full flex items-center px-3">
+        <div className="flex-1 bg-[#F0F2F5] dark:bg-gray-700 rounded-full flex items-center px-3">
           <input
             type="text"
             value={inputText}
             onChange={handleInputChange}
             placeholder="মেসেজ লিখুন..."
-            className="bg-transparent border-none outline-none flex-1 py-2 text-sm"
+            className="bg-transparent border-none outline-none flex-1 py-2 text-sm dark:text-white dark:placeholder-gray-400"
           />
         </div>
         <button
           type="submit"
           disabled={isSending || (!inputText.trim() && !selectedImage)}
-          className="text-[#1D4ED8] hover:bg-blue-50 p-2 rounded-full transition-all disabled:opacity-30"
+          className="text-[#1D4ED8] dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-2 rounded-full transition-all disabled:opacity-30"
         >
           {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
         </button>

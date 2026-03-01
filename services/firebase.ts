@@ -479,9 +479,15 @@ export const subscribeToActiveCalls = (userId: string, callback: (call: Call | n
   const processSnapshot = (snapshot: any) => {
     const calls = snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() } as Call));
     
-    // Filter out stale calls (older than 2 minutes)
+    // Filter out stale ringing calls (older than 2 minutes)
+    // Keep accepted calls (ongoing)
     const now = Date.now();
-    const validCalls = calls.filter((c: Call) => (now - c.createdAt) < 2 * 60 * 1000);
+    const validCalls = calls.filter((c: Call) => {
+      if (c.status === 'ringing') {
+        return (now - c.createdAt) < 2 * 60 * 1000;
+      }
+      return true; // Keep accepted/ongoing calls
+    });
     
     validCalls.sort((a: Call, b: Call) => b.createdAt - a.createdAt);
     return validCalls.length > 0 ? validCalls[0] : null;

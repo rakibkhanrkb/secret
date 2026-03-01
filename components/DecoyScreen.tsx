@@ -7,20 +7,20 @@ interface DecoyScreenProps {
 
 const DecoyScreen: React.FC<DecoyScreenProps> = ({ onBack }) => {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 relative z-10 text-center">
-      <div className="bg-white p-12 rounded-3xl shadow-2xl max-w-lg w-full border border-gray-200 animate-fade-in">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-gray-900 relative z-10 text-center transition-colors duration-200">
+      <div className="bg-white dark:bg-gray-800 p-12 rounded-3xl shadow-2xl max-w-lg w-full border border-gray-200 dark:border-gray-700 animate-fade-in transition-colors duration-200">
         <div className="mb-8 text-6xl">⛔</div>
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-6 font-serif leading-tight">
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white mb-6 font-serif leading-tight">
           আপনি প্রিয়জন নন
         </h1>
-        <p className="text-xl text-gray-600 mb-10 leading-relaxed italic">
+        <p className="text-xl text-gray-600 dark:text-gray-300 mb-10 leading-relaxed italic">
           যার জন্য মেসেজ লেখা হয়েছে সে ঠিক ই দেখে নিবে...<br/>
-          <span className="text-rose-500 font-semibold mt-4 block">আপনি বের হয়ে যান।</span>
+          <span className="text-rose-500 dark:text-rose-400 font-semibold mt-4 block">আপনি বের হয়ে যান।</span>
         </p>
         
         <button
           onClick={onBack}
-          className="px-8 py-3 bg-gray-800 text-white rounded-xl hover:bg-black transition-colors text-lg"
+          className="px-8 py-3 bg-gray-800 dark:bg-gray-700 text-white rounded-xl hover:bg-black dark:hover:bg-gray-600 transition-colors text-lg"
         >
           ফিরে যাও
         </button>

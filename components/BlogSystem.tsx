@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPost, subscribeToPosts, isFirebaseConfigured, sendFriendRequest, subscribeToIncomingFriendRequests, subscribeToSentFriendRequests, respondToFriendRequest, subscribeToFriends, subscribeToAllVisiblePosts, addReply, checkUserIdExists, unfriend, subscribeToNotifications, markNotificationAsRead, deleteNotification, subscribeToUnreadMessageCounts, subscribeToUserProfile, updateUserProfile, subscribeToAllUserProfiles, toggleReaction, removeReaction, subscribeToAllUserIds, subscribeToAllUserAccounts, updateUserAccount, deleteUserAccount, subscribeToRegistrationRequests, subscribeToAllFriendships, subscribeToActiveCalls, subscribeToCallStatus, initiateCall, requestNotificationPermission, onForegroundMessage, sendChatMessage } from '../services/firebase';
 import { Post, FriendRequest, Notification, UserProfile, UserAccount, RegistrationRequest, Call } from '../types';
-import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2, Edit, MapPin, Calendar, Info, Shield, Key, Phone, Lock, PhoneOff, Mic, MicOff, VideoOff } from 'lucide-react';
+import { Send, MessageCircle, Heart, AlertCircle, ArrowLeft, UserPlus, Users, Check, X, Search, Bell, UserMinus, MessageSquare, Image as ImageIcon, Trash2, Camera, User, Home, Video, ShoppingBag, Menu, LogOut, MoreHorizontal, ThumbsUp, Share2, Edit, MapPin, Calendar, Info, Shield, Key, Phone, Lock, PhoneOff, Mic, MicOff, VideoOff, Moon, Sun } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import ChatWindow from './ChatWindow';
 import CallWindow from './CallWindow';
@@ -60,6 +60,23 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   const [editingAccount, setEditingAccount] = useState<UserAccount | null>(null);
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [activeCall, setActiveCall] = useState<Call | null>(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') === 'dark' ||
+        (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
   const [hoveredPostId, setHoveredPostId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -84,9 +101,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
     const unsubAllUserIds = subscribeToAllUserIds(setAllUserIds);
     const unsubAllFriendships = subscribeToAllFriendships(setAllFriendships);
     const unsubActiveCalls = subscribeToActiveCalls(userId, (call) => {
-      if (call) {
-        setActiveCall(call);
-      }
+      setActiveCall(call);
     });
 
     // Request notification permission
@@ -470,33 +485,33 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   );
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] flex flex-col">
+    <div className="min-h-screen bg-[#F0F2F5] dark:bg-gray-900 flex flex-col transition-colors duration-200">
       {/* Facebook Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50 h-14 flex items-center justify-between px-4">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 h-14 flex items-center justify-between px-4 transition-colors duration-200">
         <div className="flex items-center gap-2">
           {!showMobileSearch && <div className="text-[#1D4ED8] font-bold text-4xl tracking-tighter">Mitali</div>}
           
           {/* Desktop Search */}
           <div className="relative ml-2 hidden md:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
             <input 
               type="text" 
               placeholder="মিতালি খুঁজুন" 
               value={headerSearchInput}
               onChange={(e) => setHeaderSearchInput(e.target.value)}
-              className="bg-[#F0F2F5] pl-10 pr-4 py-2 rounded-full text-sm outline-none w-60 focus:ring-1 focus:ring-gray-300"
+              className="bg-[#F0F2F5] dark:bg-gray-700 dark:text-white pl-10 pr-4 py-2 rounded-full text-sm outline-none w-60 focus:ring-1 focus:ring-gray-300 dark:focus:ring-gray-600 transition-colors duration-200"
             />
             {headerSearchResults.length > 0 && (
-              <div className="absolute top-full left-0 mt-2 w-80 bg-white shadow-2xl rounded-xl border border-gray-200 overflow-hidden z-[100]">
-                <div className="p-2 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                  <span className="text-xs font-bold text-gray-500 px-2">সার্চ রেজাল্ট</span>
-                  <button onClick={() => setHeaderSearchInput('')} className="p-1 hover:bg-gray-200 rounded-full">
+              <div className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-gray-800 shadow-2xl rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-[100]">
+                <div className="p-2 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700/50">
+                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400 px-2">সার্চ রেজাল্ট</span>
+                  <button onClick={() => setHeaderSearchInput('')} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full">
                     <X className="w-3 h-3 text-gray-400" />
                   </button>
                 </div>
                 <div className="max-h-96 overflow-y-auto">
                   {headerSearchResults.map((resId) => (
-                    <div key={resId} className="flex items-center justify-between p-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
+                    <div key={resId} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-50 dark:border-gray-700 last:border-0">
                       <div 
                         onClick={() => {
                           setViewingProfileId(resId);
@@ -514,16 +529,16 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                           )}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-bold text-gray-800 text-sm group-hover:text-[#1D4ED8] transition-colors">{resId}</span>
+                          <span className="font-bold text-gray-800 dark:text-gray-200 text-sm group-hover:text-[#1D4ED8] dark:group-hover:text-[#3B82F6] transition-colors">{resId}</span>
                           {allProfiles[resId]?.location && (
-                            <span className="text-[10px] text-gray-500">{allProfiles[resId].location}</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400">{allProfiles[resId].location}</span>
                           )}
                         </div>
                       </div>
                       <button 
                         onClick={() => handleSendFriendRequestTo(resId)}
                         disabled={sentRequests.some(r => r.toUserId === resId)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${sentRequests.some(r => r.toUserId === resId) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-[#1D4ED8] text-white hover:bg-[#1a44c2]'}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${sentRequests.some(r => r.toUserId === resId) ? 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300 cursor-not-allowed' : 'bg-[#1D4ED8] text-white hover:bg-[#1a44c2]'}`}
                       >
                         {sentRequests.some(r => r.toUserId === resId) ? 'রিকোয়েস্ট সেন্ড' : 'রিকোয়েস্ট'}
                       </button>
@@ -614,32 +629,32 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
         {!showMobileSearch && (
           <nav className="hidden lg:flex items-center gap-2 h-full">
-            <button className="h-full px-10 border-b-4 border-[#1D4ED8] text-[#1D4ED8]">
+            <button className="h-full px-10 border-b-4 border-[#1D4ED8] dark:border-blue-500 text-[#1D4ED8] dark:text-blue-500 transition-colors">
               <Home className="w-7 h-7" />
             </button>
             <button 
               onClick={() => setShowFriendsList(true)}
-              className="h-full px-10 text-gray-500 hover:bg-gray-100 rounded-lg relative"
+              className="h-full px-10 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative transition-colors"
             >
               <Users className="w-7 h-7" />
               {incomingRequests.length > 0 && (
-                <span className="absolute top-2 right-6 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
+                <span className="absolute top-2 right-6 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white dark:border-gray-800">
                   {incomingRequests.length}
                 </span>
               )}
             </button>
             <button 
               onClick={() => setShowFriendsList(true)}
-              className="h-full px-10 text-gray-500 hover:bg-gray-100 rounded-lg relative"
+              className="h-full px-10 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative transition-colors"
             >
               <MessageSquare className="w-7 h-7" />
               {totalUnreadCount > 0 && (
-                <span className="absolute top-2 right-6 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white animate-badge-pulse shadow-lg">
+                <span className="absolute top-2 right-6 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white dark:border-gray-800 animate-badge-pulse shadow-lg">
                   {totalUnreadCount}
                 </span>
               )}
             </button>
-            <button className="h-full px-10 text-gray-500 hover:bg-gray-100 rounded-lg">
+            <button className="h-full px-10 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
               <Video className="w-7 h-7" />
             </button>
           </nav>
@@ -649,49 +664,55 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setShowFriendsList(!showFriendsList)}
-              className={`p-2 rounded-full transition-colors relative lg:hidden ${showFriendsList ? 'bg-blue-50 text-[#1D4ED8]' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+              className={`p-2 rounded-full transition-colors relative lg:hidden ${showFriendsList ? 'bg-blue-50 dark:bg-blue-900/30 text-[#1D4ED8] dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200'}`}
             >
               <Users className="w-5 h-5" />
               {incomingRequests.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white dark:border-gray-800">
                   {incomingRequests.length}
                 </span>
               )}
             </button>
-            <button className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors relative">
-              <Menu className="w-5 h-5 text-gray-700" />
+            <button className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors relative text-gray-700 dark:text-gray-200">
+              <Menu className="w-5 h-5" />
             </button>
           <button 
             onClick={() => setShowFriendsList(!showFriendsList)}
-            className={`p-2 rounded-full transition-colors relative ${showFriendsList ? 'bg-blue-50 text-[#1D4ED8]' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+            className={`p-2 rounded-full transition-colors relative ${showFriendsList ? 'bg-blue-50 dark:bg-blue-900/30 text-[#1D4ED8] dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200'}`}
           >
             <MessageSquare className="w-5 h-5" />
             {totalUnreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-badge-pulse shadow-lg">
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-badge-pulse shadow-lg border border-white dark:border-gray-800">
                 {totalUnreadCount}
               </span>
             )}
           </button>
           <button 
+            onClick={() => setDarkMode(!darkMode)}
+            className="p-2 rounded-full transition-colors relative bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+          >
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          <button 
             onClick={() => setShowNotifications(!showNotifications)}
-            className={`p-2 rounded-full transition-colors relative ${showNotifications ? 'bg-blue-50 text-[#1D4ED8]' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+            className={`p-2 rounded-full transition-colors relative ${showNotifications ? 'bg-blue-50 dark:bg-blue-900/30 text-[#1D4ED8] dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200'}`}
           >
             <Bell className="w-5 h-5" />
             {notifications.filter(n => !n.read).length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white dark:border-gray-800">
                 {notifications.filter(n => !n.read).length}
               </span>
             )}
           </button>
           <div 
             onClick={() => setShowProfileView(true)}
-            className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 ml-2 cursor-pointer"
+            className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 ml-2 cursor-pointer"
           >
             {userProfile?.profileImageUrl ? (
               <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <User className="w-6 h-6 text-gray-500" />
+              <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                <User className="w-6 h-6 text-gray-500 dark:text-gray-400" />
               </div>
             )}
           </div>
@@ -702,25 +723,25 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       <main className="flex-1 flex justify-center gap-8 p-4 max-w-[1400px] mx-auto w-full">
         {/* Left Sidebar */}
         <aside className="hidden xl:block w-72 space-y-2">
-          <div className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors">
+          <div className="flex items-center gap-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
             <div className="w-9 h-9 rounded-full overflow-hidden">
               {userProfile?.profileImageUrl ? (
                 <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <User className="w-5 h-5 text-gray-500" />
+                <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                 </div>
               )}
             </div>
-            <span className="font-semibold text-gray-800">{getDisplayName(userId)}</span>
+            <span className="font-semibold text-gray-800 dark:text-gray-200">{getDisplayName(userId)}</span>
           </div>
           <div 
             onClick={() => setShowFriendsList(true)}
-            className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors"
+            className="flex items-center gap-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors"
           >
-            <Users className="w-9 h-9 text-[#1D4ED8]" />
+            <Users className="w-9 h-9 text-[#1D4ED8] dark:text-blue-500" />
             <div className="flex-1 flex justify-between items-center">
-              <span className="font-semibold text-gray-800">বন্ধুরা</span>
+              <span className="font-semibold text-gray-800 dark:text-gray-200">বন্ধুরা</span>
               {incomingRequests.length > 0 && (
                 <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                   {incomingRequests.length}
@@ -730,11 +751,11 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
           </div>
           <div 
             onClick={() => setShowFriendsList(true)}
-            className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors"
+            className="flex items-center gap-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors"
           >
-            <MessageSquare className="w-9 h-9 text-[#1D4ED8]" />
+            <MessageSquare className="w-9 h-9 text-[#1D4ED8] dark:text-blue-500" />
             <div className="flex-1 flex justify-between items-center">
-              <span className="font-semibold text-gray-800">মেসেজ</span>
+              <span className="font-semibold text-gray-800 dark:text-gray-200">মেসেজ</span>
               {totalUnreadCount > 0 && (
                 <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-badge-pulse shadow-md">
                   {totalUnreadCount}
@@ -742,18 +763,18 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors">
-            <Video className="w-9 h-9 text-[#1D4ED8]" />
-            <span className="font-semibold text-gray-800">ভিডিও</span>
+          <div className="flex items-center gap-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+            <Video className="w-9 h-9 text-[#1D4ED8] dark:text-blue-500" />
+            <span className="font-semibold text-gray-800 dark:text-gray-200">ভিডিও</span>
           </div>
-          <div className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors">
-            <ShoppingBag className="w-9 h-9 text-[#1D4ED8]" />
-            <span className="font-semibold text-gray-800">মার্কেটপ্লেস</span>
+          <div className="flex items-center gap-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+            <ShoppingBag className="w-9 h-9 text-[#1D4ED8] dark:text-blue-500" />
+            <span className="font-semibold text-gray-800 dark:text-gray-200">মার্কেটপ্লেস</span>
           </div>
           {userId === 'rkb@93' && (
             <div 
               onClick={() => setShowAdminPanel(true)}
-              className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors text-red-600"
+              className="flex items-center gap-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors text-red-600 dark:text-red-400"
             >
               <Shield className="w-9 h-9" />
               <span className="font-bold">অ্যাডমিন প্যানেল</span>
@@ -764,38 +785,38 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
         {/* Center Feed */}
         <div className="max-w-[680px] w-full space-y-4">
           {/* Create Post */}
-          <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700 transition-colors">
             <div className="flex gap-3 mb-3">
               <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
                 {userProfile?.profileImageUrl ? (
                   <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <User className="w-6 h-6 text-gray-500" />
+                  <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                    <User className="w-6 h-6 text-gray-500 dark:text-gray-400" />
                   </div>
                 )}
               </div>
               <button 
                 onClick={() => setIsCreatingPost(true)}
-                className="bg-[#F0F2F5] hover:bg-gray-200 text-gray-600 text-left px-4 py-2 rounded-full flex-1 transition-colors"
+                className="bg-[#F0F2F5] dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 text-left px-4 py-2 rounded-full flex-1 transition-colors"
               >
                 {getDisplayName(userId)}, আপনি এখন কী ভাবছেন?
               </button>
             </div>
-            <hr className="border-gray-100 mb-3" />
+            <hr className="border-gray-100 dark:border-gray-700 mb-3" />
             <div className="flex justify-between">
-              <button className="flex items-center gap-2 hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors text-gray-600 font-semibold">
+              <button className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 px-4 py-2 rounded-lg transition-colors text-gray-600 dark:text-gray-300 font-semibold">
                 <Video className="w-6 h-6 text-red-500" />
                 লাইভ ভিডিও
               </button>
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors text-gray-600 font-semibold"
+                className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 px-4 py-2 rounded-lg transition-colors text-gray-600 dark:text-gray-300 font-semibold"
               >
                 <ImageIcon className="w-6 h-6 text-[#42B72A]" />
                 ছবি/ভিডিও
               </button>
-              <button className="flex items-center gap-2 hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors text-gray-600 font-semibold">
+              <button className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 px-4 py-2 rounded-lg transition-colors text-gray-600 dark:text-gray-300 font-semibold">
                 <Heart className="w-6 h-6 text-yellow-500" />
                 অনুভূতি/অ্যাক্টিভিটি
               </button>
@@ -805,64 +826,64 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
           {/* Posts Feed */}
           <div className="space-y-4">
             {posts.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200">
-                <Users className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-400">এখনও কোনো পোস্ট নেই</h3>
-                <p className="text-gray-400">বন্ধু যোগ করুন এবং তাদের পোস্ট দেখুন!</p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-12 text-center border border-gray-200 dark:border-gray-700 transition-colors">
+                <Users className="w-16 h-16 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-gray-400 dark:text-gray-500">এখনও কোনো পোস্ট নেই</h3>
+                <p className="text-gray-400 dark:text-gray-500">বন্ধু যোগ করুন এবং তাদের পোস্ট দেখুন!</p>
               </div>
             ) : (
               posts.map((post) => (
-                <div key={post.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div key={post.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 transition-colors">
                   {/* Post Header */}
                   <div className="p-4 flex justify-between items-start">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 dark:border-gray-700">
                         {allProfiles[post.userId]?.profileImageUrl ? (
                           <img src={allProfiles[post.userId].profileImageUrl} alt={post.userId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         ) : (
-                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                            <User className="w-6 h-6 text-gray-500" />
+                          <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                            <User className="w-6 h-6 text-gray-500 dark:text-gray-400" />
                           </div>
                         )}
                       </div>
                       <div>
                         <h4 
                           onClick={() => setViewingProfileId(post.userId)}
-                          className="font-bold text-gray-900 hover:underline cursor-pointer"
+                          className="font-bold text-gray-900 dark:text-white hover:underline cursor-pointer"
                         >
                           {getDisplayName(post.userId)}
                         </h4>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                           {formatDistanceToNow(post.createdAt)} ago • <Users className="w-3 h-3" />
                         </p>
                       </div>
                     </div>
-                    <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                      <MoreHorizontal className="w-5 h-5 text-gray-500" />
+                    <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                      <MoreHorizontal className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                     </button>
                   </div>
 
                   {/* Post Content */}
                   <div className="px-4 pb-3">
-                    <p className="text-gray-800 whitespace-pre-wrap">{post.content}</p>
+                    <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{post.content}</p>
                   </div>
 
                   {/* Post Image */}
                   {post.imageUrl && (
-                    <div className="border-y border-gray-100 bg-gray-50">
+                    <div className="border-y border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                       <img src={post.imageUrl} alt="Post" className="w-full max-h-[600px] object-contain mx-auto" referrerPolicy="no-referrer" />
                     </div>
                   )}
 
                   {/* Post Stats */}
-                  <div className="px-4 py-2 flex justify-between items-center text-sm text-gray-500">
+                  <div className="px-4 py-2 flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
                     <div className="flex items-center gap-1">
                       {post.reactions && Object.keys(post.reactions).length > 0 && (
                         <div className="flex -space-x-1 items-center">
                           {Array.from(new Set(Object.values(post.reactions))).slice(0, 3).map((type, idx) => (
                             <span key={idx} className="text-xs">{getReactionEmoji(type as string)}</span>
                           ))}
-                          <span className="ml-1 text-gray-500">{Object.keys(post.reactions).length}</span>
+                          <span className="ml-1 text-gray-500 dark:text-gray-400">{Object.keys(post.reactions).length}</span>
                         </div>
                       )}
                     </div>
@@ -872,7 +893,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                     </div>
                   </div>
 
-                  <hr className="mx-4 border-gray-100" />
+                  <hr className="mx-4 border-gray-100 dark:border-gray-700" />
 
                   {/* Post Actions */}
                   <div className="px-4 py-1 flex justify-between relative">
@@ -883,7 +904,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                     >
                       {hoveredPostId === post.id && (
                         <div className="absolute bottom-full left-0 pb-2 z-10">
-                          <div className="bg-white shadow-xl border border-gray-200 rounded-full p-1 flex gap-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                          <div className="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-full p-1 flex gap-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
                             {reactionOptions.map((opt) => (
                               <button
                                 key={opt.type}
@@ -902,10 +923,10 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                       )}
                       <button 
                         onClick={() => handleToggleReaction(post.id, 'like')}
-                        className={`w-full flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors font-semibold ${
+                        className={`w-full flex items-center justify-center gap-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors font-semibold ${
                           post.reactions?.[userId] 
                             ? getReactionColor(post.reactions[userId] as string) 
-                            : 'text-gray-600'
+                            : 'text-gray-600 dark:text-gray-300'
                         }`}
                       >
                         {post.reactions?.[userId] ? (
@@ -916,13 +937,13 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                         {post.reactions?.[userId] ? getReactionLabel(post.reactions[userId] as string) : 'লাইক'}
                       </button>
                     </div>
-                    <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 font-semibold">
+                    <button className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-300 font-semibold">
                       <MessageSquare className="w-5 h-5" />
                       কমেন্ট
                     </button>
                     <button 
                       onClick={() => setPostToShare(post)}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 font-semibold"
+                      className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-300 font-semibold"
                     >
                       <Share2 className="w-5 h-5" />
                       শেয়ার
@@ -934,12 +955,12 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                     <div className="px-4 pb-4 space-y-3 mt-2">
                       {post.replies.map((reply) => (
                         <div key={reply.id} className="flex gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center">
-                            <User className="w-4 h-4 text-gray-500" />
+                          <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center">
+                            <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                           </div>
-                          <div className="bg-[#F0F2F5] p-2 px-3 rounded-2xl max-w-[90%]">
-                            <p className="text-xs font-bold text-gray-900">{reply.isAdmin ? 'অ্যাডমিন' : getDisplayName(reply.userId)}</p>
-                            <p className="text-sm text-gray-800">{reply.content}</p>
+                          <div className="bg-[#F0F2F5] dark:bg-gray-700 p-2 px-3 rounded-2xl max-w-[90%]">
+                            <p className="text-xs font-bold text-gray-900 dark:text-gray-200">{reply.isAdmin ? 'অ্যাডমিন' : getDisplayName(reply.userId)}</p>
+                            <p className="text-sm text-gray-800 dark:text-gray-300">{reply.content}</p>
                           </div>
                         </div>
                       ))}
@@ -952,23 +973,23 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                       {userProfile?.profileImageUrl ? (
                         <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       ) : (
-                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                          <User className="w-5 h-5 text-gray-500" />
+                        <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                          <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                         </div>
                       )}
                     </div>
-                    <div className="flex-1 bg-[#F0F2F5] rounded-2xl flex items-center px-3">
+                    <div className="flex-1 bg-[#F0F2F5] dark:bg-gray-700 rounded-2xl flex items-center px-3 transition-colors">
                       <input 
                         type="text" 
                         placeholder="কমেন্ট লিখুন..."
                         value={replyText[post.id] || ''}
                         onChange={(e) => setReplyText({ ...replyText, [post.id]: e.target.value })}
                         onKeyPress={(e) => e.key === 'Enter' && handleReply(post.id)}
-                        className="bg-transparent border-none outline-none flex-1 py-1.5 text-sm"
+                        className="bg-transparent border-none outline-none flex-1 py-1.5 text-sm dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
                       />
                       <button 
                         onClick={() => handleReply(post.id)}
-                        className="text-[#1D4ED8] hover:bg-blue-50 p-1 rounded-full transition-colors"
+                        className="text-[#1D4ED8] dark:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-1 rounded-full transition-colors"
                       >
                         <Send className="w-4 h-4" />
                       </button>
@@ -985,22 +1006,22 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
           {incomingRequests.length > 0 && (
             <div className="space-y-4">
               <div className="flex justify-between items-center px-2">
-                <h3 className="font-bold text-gray-500 uppercase text-xs tracking-wider">বর্তমান ফ্রেন্ড রিকোয়েস্ট</h3>
+                <h3 className="font-bold text-gray-500 dark:text-gray-400 uppercase text-xs tracking-wider">বর্তমান ফ্রেন্ড রিকোয়েস্ট</h3>
               </div>
               <div className="space-y-3 px-2">
                 {incomingRequests.map((req) => (
-                  <div key={req.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                  <div key={req.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-colors">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700">
                         {allProfiles[req.fromUserId]?.profileImageUrl ? (
                           <img src={allProfiles[req.fromUserId].profileImageUrl} alt={req.fromUserId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         ) : (
-                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                            <User className="w-6 h-6 text-gray-400" />
+                          <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                            <User className="w-6 h-6 text-gray-400 dark:text-gray-500" />
                           </div>
                         )}
                       </div>
-                      <span className="font-bold text-sm text-gray-800 truncate">{req.fromUserId}</span>
+                      <span className="font-bold text-sm text-gray-800 dark:text-gray-200 truncate">{req.fromUserId}</span>
                     </div>
                     <div className="flex gap-2">
                       <button 
@@ -1011,7 +1032,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                       </button>
                       <button 
                         onClick={() => respondToFriendRequest(req.id, 'rejected', req.fromUserId, req.toUserId)}
-                        className="flex-1 bg-gray-200 text-gray-700 py-1.5 rounded-md text-xs font-bold hover:bg-gray-300 transition-colors"
+                        className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-1.5 rounded-md text-xs font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                       >
                         বাতিল
                       </button>
@@ -1019,43 +1040,43 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                   </div>
                 ))}
               </div>
-              <hr className="border-gray-200 mx-2" />
+              <hr className="border-gray-200 dark:border-gray-700 mx-2" />
             </div>
           )}
 
           <div className="flex justify-between items-center px-2">
-            <h3 className="font-bold text-gray-500 uppercase text-xs tracking-wider">আপনার বন্ধুরা</h3>
+            <h3 className="font-bold text-gray-500 dark:text-gray-400 uppercase text-xs tracking-wider">আপনার বন্ধুরা</h3>
             <div className="flex gap-2">
-              <Search className="w-4 h-4 text-gray-500 cursor-pointer" />
-              <MoreHorizontal className="w-4 h-4 text-gray-500 cursor-pointer" />
+              <Search className="w-4 h-4 text-gray-500 dark:text-gray-400 cursor-pointer" />
+              <MoreHorizontal className="w-4 h-4 text-gray-500 dark:text-gray-400 cursor-pointer" />
             </div>
           </div>
           
           <div className="space-y-1">
             {friends.length === 0 ? (
-              <p className="text-sm text-gray-400 px-2 italic">কোনো বন্ধু নেই</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 px-2 italic">কোনো বন্ধু নেই</p>
             ) : (
               friends.map((friendId) => (
                 <div 
                   key={friendId} 
-                  className="flex items-center gap-3 p-2 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors relative group"
+                  className="flex items-center gap-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors relative group"
                 >
                   <div 
                     onClick={() => setViewingProfileId(friendId)}
-                    className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 relative hover:scale-110 transition-transform"
+                    className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 relative hover:scale-110 transition-transform"
                   >
                     {allProfiles[friendId]?.profileImageUrl ? (
                       <img src={allProfiles[friendId].profileImageUrl} alt={friendId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                        <User className="w-5 h-5 text-gray-500" />
+                      <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                       </div>
                     )}
-                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
+                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
                   </div>
                   <span 
                     onClick={() => setActiveChatFriend(friendId)}
-                    className="font-semibold text-gray-800 flex-1 hover:text-[#1D4ED8]"
+                    className="font-semibold text-gray-800 dark:text-gray-200 flex-1 hover:text-[#1D4ED8] dark:hover:text-blue-400"
                   >
                     {friendId}
                   </span>
@@ -1070,7 +1091,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                         e.stopPropagation();
                         handleUnfriend(friendId);
                       }}
-                      className="p-1.5 hover:bg-gray-300 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+                      className="p-1.5 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                       title="আনফ্রেন্ড করুন"
                     >
                       <UserMinus className="w-4 h-4" />
@@ -1081,12 +1102,12 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
             )}
           </div>
 
-          <hr className="border-gray-200 mx-2" />
+          <hr className="border-gray-200 dark:border-gray-700 mx-2" />
 
           <div className="px-2">
             <button 
               onClick={() => setIsAddingFriend(true)}
-              className="w-full flex items-center justify-center gap-2 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700 font-bold"
+              className="w-full flex items-center justify-center gap-2 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-700 dark:text-gray-200 font-bold"
             >
               <UserPlus className="w-5 h-5" />
               বন্ধু খুঁজুন
@@ -1099,54 +1120,54 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       {/* Share Post Modal */}
       {postToShare && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300 flex flex-col max-h-[80vh]">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white sticky top-0 z-10">
-              <h3 className="font-bold text-lg">পোস্ট শেয়ার করুন</h3>
+          <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300 flex flex-col max-h-[80vh]">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-800 sticky top-0 z-10">
+              <h3 className="font-bold text-lg dark:text-white">পোস্ট শেয়ার করুন</h3>
               <button 
                 onClick={() => setPostToShare(null)}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
             
-            <div className="p-4 border-b border-gray-100">
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input 
                   type="text" 
                   placeholder="বন্ধুদের খুঁজুন..." 
                   value={shareSearchTerm}
                   onChange={(e) => setShareSearchTerm(e.target.value)}
-                  className="w-full bg-gray-100 pl-9 pr-4 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  className="w-full bg-gray-100 dark:bg-gray-700 dark:text-white pl-9 pr-4 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 />
               </div>
             </div>
 
             <div className="overflow-y-auto p-2 space-y-1 flex-1">
               {filteredFriendsForShare.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 text-sm">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
                   কোনো বন্ধু পাওয়া যায়নি
                 </div>
               ) : (
                 filteredFriendsForShare.map(friendId => (
-                  <div key={friendId} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors group">
+                  <div key={friendId} className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors group">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700">
                         {allProfiles[friendId]?.profileImageUrl ? (
                           <img src={allProfiles[friendId].profileImageUrl} alt={friendId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         ) : (
-                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                            <User className="w-5 h-5 text-gray-400" />
+                          <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                            <User className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                           </div>
                         )}
                       </div>
-                      <span className="font-bold text-gray-800 text-sm">{getDisplayName(friendId)}</span>
+                      <span className="font-bold text-gray-800 dark:text-gray-200 text-sm">{getDisplayName(friendId)}</span>
                     </div>
                     <button 
                       onClick={() => handleSharePost(friendId)}
                       disabled={isSharing}
-                      className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+                      className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
                     >
                       <Send className="w-3 h-3" />
                       পাঠান
@@ -1160,21 +1181,21 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       )}
 
       {showNotifications && (
-        <div className="fixed top-14 right-4 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-[60] max-h-[80vh] overflow-y-auto">
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="font-bold text-xl">নোটিফিকেশন</h3>
-            <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-gray-100 rounded-full">
-              <X className="w-5 h-5" />
+        <div className="fixed top-14 right-4 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 z-[60] max-h-[80vh] overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-800 sticky top-0 z-10">
+            <h3 className="font-bold text-xl dark:text-white">নোটিফিকেশন</h3>
+            <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+              <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </button>
           </div>
           <div className="p-2">
             {notifications.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">কোনো নোটিফিকেশন নেই</p>
+              <p className="text-center text-gray-500 dark:text-gray-400 py-8">কোনো নোটিফিকেশন নেই</p>
             ) : (
               notifications.map((n) => (
                 <div 
                   key={n.id} 
-                  className={`p-3 rounded-lg flex gap-3 hover:bg-gray-100 cursor-pointer transition-colors ${!n.read ? 'bg-blue-50' : ''}`}
+                  className={`p-3 rounded-lg flex gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors ${!n.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                   onClick={() => markNotificationAsRead(n.id)}
                 >
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -1187,14 +1208,14 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                      <Bell className="w-6 h-6 text-white" />}
                   </div>
                   <div className="flex-1">
-                    <p className={`text-sm ${!n.read ? 'font-bold' : ''}`}>{n.message}</p>
-                    <p className="text-xs text-[#1D4ED8] mt-1">{formatDistanceToNow(n.createdAt)} ago</p>
+                    <p className={`text-sm dark:text-gray-200 ${!n.read ? 'font-bold' : ''}`}>{n.message}</p>
+                    <p className="text-xs text-[#1D4ED8] dark:text-blue-400 mt-1">{formatDistanceToNow(n.createdAt)} ago</p>
                   </div>
                   <button 
                     onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
-                    className="p-1 hover:bg-gray-200 rounded-full h-fit"
+                    className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full h-fit transition-colors"
                   >
-                    <Trash2 className="w-4 h-4 text-gray-400" />
+                    <Trash2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                   </button>
                 </div>
               ))
@@ -1205,7 +1226,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
       {viewingProfileId && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-[340px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-[340px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300">
             <div className="relative h-24 bg-gradient-to-r from-gray-600 to-gray-800">
               <button 
                 onClick={() => setViewingProfileId(null)}
@@ -1217,51 +1238,51 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
             
             <div className="px-5 pb-6">
               <div className="relative -mt-12 mb-3 flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full border-4 border-white overflow-hidden shadow-lg bg-white">
+                <div className="w-24 h-24 rounded-full border-4 border-white dark:border-gray-800 overflow-hidden shadow-lg bg-white dark:bg-gray-800">
                   {allProfiles[viewingProfileId]?.profileImageUrl ? (
                     <img src={allProfiles[viewingProfileId].profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                      <User className="w-12 h-12 text-gray-400" />
+                    <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                      <User className="w-12 h-12 text-gray-400 dark:text-gray-500" />
                     </div>
                   )}
                 </div>
               </div>
 
               <div className="text-center mb-5">
-                <h3 className="text-xl font-bold text-gray-900">{getDisplayName(viewingProfileId)}</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{getDisplayName(viewingProfileId)}</h3>
                 {allProfiles[viewingProfileId]?.bio && (
-                  <p className="text-gray-600 mt-1 text-sm italic leading-tight">"{allProfiles[viewingProfileId].bio}"</p>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm italic leading-tight">"{allProfiles[viewingProfileId].bio}"</p>
                 )}
               </div>
 
-              <div className="space-y-3 border-t border-gray-100 pt-4">
-                <div className="flex items-center gap-3 text-gray-700">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-[#1D4ED8]">
+              <div className="space-y-3 border-t border-gray-100 dark:border-gray-700 pt-4">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-[#1D4ED8] dark:text-blue-400">
                     <MapPin className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">অবস্থান</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase leading-none">অবস্থান</p>
                     <p className="text-sm font-medium">{allProfiles[viewingProfileId]?.location || 'উল্লেখ নেই'}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-gray-700">
-                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
                     <Calendar className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">জন্ম তারিখ</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase leading-none">জন্ম তারিখ</p>
                     <p className="text-sm font-medium">{allProfiles[viewingProfileId]?.birthDate || 'উল্লেখ নেই'}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-gray-700">
-                  <div className="w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-600">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                  <div className="w-8 h-8 rounded-full bg-pink-50 dark:bg-pink-900/30 flex items-center justify-center text-pink-600 dark:text-pink-400">
                     <Info className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">লিঙ্গ</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase leading-none">লিঙ্গ</p>
                     <p className="text-sm font-medium">{allProfiles[viewingProfileId]?.gender || 'উল্লেখ নেই'}</p>
                   </div>
                 </div>
@@ -1276,7 +1297,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                   disabled={sentRequests.some(r => r.toUserId === viewingProfileId)}
                   className={`w-full mt-5 font-bold py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${
                     sentRequests.some(r => r.toUserId === viewingProfileId)
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                       : 'bg-[#1D4ED8] hover:bg-[#1a44c2] text-white shadow-lg shadow-blue-100'
                   }`}
                 >
@@ -1287,7 +1308,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               
               {friends.includes(viewingProfileId) && (
                 <div className="space-y-2 mt-5">
-                  <div className="w-full bg-green-50 text-green-600 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2">
+                  <div className="w-full bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2">
                     <Check className="w-4 h-4" />
                     আপনার বন্ধু
                   </div>
@@ -1296,7 +1317,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                       setActiveChatFriend(viewingProfileId);
                       setViewingProfileId(null);
                     }}
-                    className="w-full bg-[#1D4ED8] text-white font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-[#1a44c2] transition-all shadow-lg shadow-blue-100"
+                    className="w-full bg-[#1D4ED8] dark:bg-blue-600 text-white font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-[#1a44c2] dark:hover:bg-blue-500 transition-all shadow-lg shadow-blue-100 dark:shadow-none"
                   >
                     <MessageSquare className="w-4 h-4" />
                     মেসেজ পাঠান
@@ -1307,7 +1328,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                         initiateCall(userId, viewingProfileId, 'audio');
                         setViewingProfileId(null);
                       }}
-                      className="flex-1 bg-blue-50 text-blue-600 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-blue-100 transition-all"
+                      className="flex-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all"
                     >
                       <Phone className="w-4 h-4" />
                       অডিও কল
@@ -1317,7 +1338,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                         initiateCall(userId, viewingProfileId, 'video');
                         setViewingProfileId(null);
                       }}
-                      className="flex-1 bg-blue-50 text-blue-600 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-blue-100 transition-all"
+                      className="flex-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all"
                     >
                       <Video className="w-4 h-4" />
                       ভিডিও কল
@@ -1332,7 +1353,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
       {showProfileView && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-[340px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-[340px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300">
             <div className="relative h-24 bg-gradient-to-r from-blue-600 to-indigo-600">
               <button 
                 onClick={() => setShowProfileView(false)}
@@ -1356,75 +1377,75 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               <div className="relative -mt-12 mb-3 flex flex-col items-center">
                 <div 
                   onClick={() => setShowFriendCount(!showFriendCount)}
-                  className="w-24 h-24 rounded-full border-4 border-white overflow-hidden shadow-lg cursor-pointer hover:scale-105 transition-transform bg-white"
+                  className="w-24 h-24 rounded-full border-4 border-white dark:border-gray-800 overflow-hidden shadow-lg cursor-pointer hover:scale-105 transition-transform bg-white dark:bg-gray-800"
                 >
                   {userProfile?.profileImageUrl ? (
                     <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                      <User className="w-12 h-12 text-gray-400" />
+                    <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                      <User className="w-12 h-12 text-gray-400 dark:text-gray-500" />
                     </div>
                   )}
                 </div>
               </div>
 
               <div className="text-center mb-5">
-                <h3 className="text-xl font-bold text-gray-900">{getDisplayName(userId)}</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{getDisplayName(userId)}</h3>
                 {userProfile?.bio && (
-                  <p className="text-gray-600 mt-1 text-sm italic leading-tight">"{userProfile.bio}"</p>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm italic leading-tight">"{userProfile.bio}"</p>
                 )}
-                <div className="mt-3 inline-block bg-blue-50 px-3 py-1 rounded-full">
-                  <p className="text-xs font-bold text-[#1D4ED8]">
+                <div className="mt-3 inline-block bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">
+                  <p className="text-xs font-bold text-[#1D4ED8] dark:text-blue-400">
                     সর্বমোট ফ্রেন্ড সংখ্যা: {friends.length}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-3 border-t border-gray-100 pt-4">
-                <div className="flex items-center gap-3 text-gray-700">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-[#1D4ED8]">
+              <div className="space-y-3 border-t border-gray-100 dark:border-gray-700 pt-4">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-[#1D4ED8] dark:text-blue-400">
                     <MapPin className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">অবস্থান</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase leading-none">অবস্থান</p>
                     <p className="text-sm font-medium">{userProfile?.location || 'উল্লেখ নেই'}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-gray-700">
-                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
                     <Calendar className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">জন্ম তারিখ</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase leading-none">জন্ম তারিখ</p>
                     <p className="text-sm font-medium">{userProfile?.birthDate || 'উল্লেখ নেই'}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-gray-700">
-                  <div className="w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-600">
+                <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                  <div className="w-8 h-8 rounded-full bg-pink-50 dark:bg-pink-900/30 flex items-center justify-center text-pink-600 dark:text-pink-400">
                     <Info className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">লিঙ্গ</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase leading-none">লিঙ্গ</p>
                     <p className="text-sm font-medium">{userProfile?.gender || 'উল্লেখ নেই'}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-2">
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-600">
+                  <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                    <div className="w-8 h-8 rounded-full bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400">
                       <Bell className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-gray-500 font-bold uppercase leading-none">পুশ নোটিফিকেশন</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase leading-none">পুশ নোটিফিকেশন</p>
                       <p className="text-sm font-medium">{userProfile?.fcmToken ? 'চালু আছে' : 'বন্ধ আছে'}</p>
                     </div>
                   </div>
                   {!userProfile?.fcmToken && (
                     <button 
                       onClick={() => requestNotificationPermission(userId)}
-                      className="text-[10px] font-black text-[#1D4ED8] uppercase tracking-wider hover:underline"
+                      className="text-[10px] font-black text-[#1D4ED8] dark:text-blue-400 uppercase tracking-wider hover:underline"
                     >
                       চালু করুন
                     </button>
@@ -1434,7 +1455,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
               <button 
                 onClick={onBack}
-                className="w-full mt-5 bg-red-50 hover:bg-red-100 text-red-600 font-bold py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2"
+                className="w-full mt-5 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 font-bold py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2"
               >
                 <LogOut className="w-4 h-4" />
                 লগআউট
@@ -1446,11 +1467,11 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
       {isEditingProfile && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-end">
-          <div className="bg-white h-full w-full max-w-md shadow-2xl animate-in slide-in-from-right duration-300 overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
-              <h3 className="font-bold text-2xl">প্রোফাইল এডিট করুন</h3>
-              <button onClick={() => setIsEditingProfile(false)} className="p-2 hover:bg-gray-100 rounded-full">
-                <X className="w-6 h-6" />
+          <div className="bg-white dark:bg-gray-800 h-full w-full max-w-md shadow-2xl animate-in slide-in-from-right duration-300 overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800 z-10">
+              <h3 className="font-bold text-2xl dark:text-white">প্রোফাইল এডিট করুন</h3>
+              <button onClick={() => setIsEditingProfile(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                <X className="w-6 h-6 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
             
@@ -1458,18 +1479,18 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               {/* Profile Image Section */}
               <div className="flex flex-col items-center">
                 <div className="relative group">
-                  <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-100 shadow-lg">
+                  <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-100 dark:border-gray-700 shadow-lg">
                     {userProfile?.profileImageUrl ? (
                       <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                        <User className="w-16 h-16 text-gray-400" />
+                      <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <User className="w-16 h-16 text-gray-400 dark:text-gray-500" />
                       </div>
                     )}
                   </div>
                   <button 
                     onClick={() => profileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 p-2 bg-[#1D4ED8] text-white rounded-full shadow-lg hover:bg-[#1a44c2] transition-all"
+                    className="absolute bottom-0 right-0 p-2 bg-[#1D4ED8] dark:bg-blue-600 text-white rounded-full shadow-lg hover:bg-[#1a44c2] dark:hover:bg-blue-500 transition-all"
                   >
                     <Camera className="w-5 h-5" />
                   </button>
@@ -1481,62 +1502,62 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                     onChange={handleProfileImageChange} 
                   />
                 </div>
-                <h4 className="mt-4 font-bold text-xl">{getDisplayName(userId)}</h4>
-                <p className="text-gray-500 text-sm">আপনার প্রোফাইল তথ্য পরিবর্তন করুন</p>
+                <h4 className="mt-4 font-bold text-xl dark:text-white">{getDisplayName(userId)}</h4>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">আপনার প্রোফাইল তথ্য পরিবর্তন করুন</p>
               </div>
 
               <form onSubmit={handleUpdateProfile} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-700">ডিসপ্লে নেম (Display Name)</label>
+                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300">ডিসপ্লে নেম (Display Name)</label>
                   <input 
                     type="text" 
                     value={profileFormData.displayName}
                     onChange={(e) => setProfileFormData({ ...profileFormData, displayName: e.target.value })}
                     placeholder="আপনার নাম লিখুন"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#1D4ED8] transition-all"
+                    className="w-full bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#1D4ED8] dark:focus:ring-blue-500 transition-all placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-700">বায়ো (Bio)</label>
+                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300">বায়ো (Bio)</label>
                   <textarea 
                     value={profileFormData.bio}
                     onChange={(e) => setProfileFormData({ ...profileFormData, bio: e.target.value })}
                     placeholder="আপনার সম্পর্কে কিছু লিখুন..."
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 min-h-[120px] outline-none focus:ring-2 focus:ring-[#1D4ED8] transition-all resize-none"
+                    className="w-full bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl p-4 min-h-[120px] outline-none focus:ring-2 focus:ring-[#1D4ED8] dark:focus:ring-blue-500 transition-all resize-none placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-700">অবস্থান (Location)</label>
+                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300">অবস্থান (Location)</label>
                   <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
                     <input 
                       type="text" 
                       value={profileFormData.location}
                       onChange={(e) => setProfileFormData({ ...profileFormData, location: e.target.value })}
                       placeholder="আপনার শহর বা দেশ"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-12 pr-4 py-3 outline-none focus:ring-2 focus:ring-[#1D4ED8] transition-all"
+                      className="w-full bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl pl-12 pr-4 py-3 outline-none focus:ring-2 focus:ring-[#1D4ED8] dark:focus:ring-blue-500 transition-all placeholder-gray-400 dark:placeholder-gray-500"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-700">জন্ম তারিখ</label>
+                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">জন্ম তারিখ</label>
                     <input 
                       type="date" 
                       value={profileFormData.birthDate}
                       onChange={(e) => setProfileFormData({ ...profileFormData, birthDate: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#1D4ED8] transition-all"
+                      className="w-full bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#1D4ED8] dark:focus:ring-blue-500 transition-all placeholder-gray-400 dark:placeholder-gray-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-700">লিঙ্গ (Gender)</label>
+                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">লিঙ্গ (Gender)</label>
                     <select 
                       value={profileFormData.gender}
                       onChange={(e) => setProfileFormData({ ...profileFormData, gender: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#1D4ED8] transition-all"
+                      className="w-full bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#1D4ED8] dark:focus:ring-blue-500 transition-all"
                     >
                       <option value="">নির্বাচন করুন</option>
                       <option value="male">পুরুষ</option>
@@ -1546,18 +1567,18 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-gray-100 flex gap-3">
+                <div className="pt-6 border-t border-gray-100 dark:border-gray-700 flex gap-3">
                   <button 
                     type="button"
                     onClick={() => setIsEditingProfile(false)}
-                    className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-all"
+                    className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
                   >
                     বাতিল
                   </button>
                   <button 
                     type="submit"
                     disabled={isUpdatingProfile}
-                    className="flex-1 py-3 bg-[#1D4ED8] text-white font-bold rounded-xl hover:bg-[#1a44c2] transition-all disabled:opacity-50"
+                    className="flex-1 py-3 bg-[#1D4ED8] dark:bg-blue-600 text-white font-bold rounded-xl hover:bg-[#1a44c2] dark:hover:bg-blue-500 transition-all disabled:opacity-50"
                   >
                     {isUpdatingProfile ? 'আপডেট হচ্ছে...' : 'সেভ করুন'}
                   </button>
@@ -1578,36 +1599,36 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
             </div>
             <div className="p-6 space-y-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
                 <input 
                   type="text" 
                   placeholder="ইউজার আইডি লিখুন"
                   value={friendIdInput}
                   onChange={(e) => setFriendIdInput(e.target.value)}
-                  className="w-full bg-gray-100 pl-10 pr-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-[#1D4ED8]"
+                  className="w-full bg-gray-100 dark:bg-gray-700 dark:text-white pl-10 pr-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-[#1D4ED8] dark:focus:ring-blue-500"
                 />
               </div>
 
               {searchResults.length > 0 && (
-                <div className="max-h-60 overflow-y-auto border border-gray-100 rounded-lg">
+                <div className="max-h-60 overflow-y-auto border border-gray-100 dark:border-gray-700 rounded-lg">
                   {searchResults.map((resId) => (
-                    <div key={resId} className="flex items-center justify-between p-3 hover:bg-gray-50 border-b border-gray-50 last:border-0">
+                    <div key={resId} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-700 last:border-0">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700">
                           {allProfiles[resId]?.profileImageUrl ? (
                             <img src={allProfiles[resId].profileImageUrl} alt={resId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           ) : (
-                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                              <User className="w-6 h-6 text-gray-400" />
+                            <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                              <User className="w-6 h-6 text-gray-400 dark:text-gray-500" />
                             </div>
                           )}
                         </div>
-                        <span className="font-bold text-gray-800">{getDisplayName(resId)}</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-200">{getDisplayName(resId)}</span>
                       </div>
                       <button 
                         onClick={() => handleSendFriendRequestTo(resId)}
                         disabled={sentRequests.some(r => r.toUserId === resId)}
-                        className={`px-3 py-1.5 rounded-md text-sm font-bold transition-colors ${sentRequests.some(r => r.toUserId === resId) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-[#1D4ED8] text-white hover:bg-[#1a44c2]'}`}
+                        className={`px-3 py-1.5 rounded-md text-sm font-bold transition-colors ${sentRequests.some(r => r.toUserId === resId) ? 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400 cursor-not-allowed' : 'bg-[#1D4ED8] dark:bg-blue-600 text-white hover:bg-[#1a44c2] dark:hover:bg-blue-500'}`}
                       >
                         {sentRequests.some(r => r.toUserId === resId) ? 'রিকোয়েস্ট সেন্ড' : 'রিকোয়েস্ট'}
                       </button>
@@ -1617,44 +1638,44 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               )}
 
               {friendIdInput && searchResults.length === 0 && (
-                <p className="text-center text-gray-500 py-2">কোনো ইউজার পাওয়া যায়নি</p>
+                <p className="text-center text-gray-500 dark:text-gray-400 py-2">কোনো ইউজার পাওয়া যায়নি</p>
               )}
 
               <button 
                 onClick={handleSendFriendRequest}
-                className="w-full bg-[#1D4ED8] hover:bg-[#1a44c2] text-white font-bold py-3 rounded-lg transition-all"
+                className="w-full bg-[#1D4ED8] dark:bg-blue-600 hover:bg-[#1a44c2] dark:hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all"
               >
                 সরাসরি রিকোয়েস্ট পাঠান
               </button>
 
               {suggestedFriends.length > 0 && (
-                <div className="pt-4 border-t border-gray-100">
-                  <h4 className="text-xs font-black text-gray-400 uppercase mb-3 tracking-wider flex items-center gap-2">
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                  <h4 className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase mb-3 tracking-wider flex items-center gap-2">
                     <Users className="w-4 h-4" /> আপনার জন্য সাজেশন
                   </h4>
                   <div className="space-y-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
                     {suggestedFriends.map((suggestion) => (
-                      <div key={suggestion.userId} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl transition-colors">
+                      <div key={suggestion.userId} className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100">
+                          <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 dark:border-gray-700">
                             {allProfiles[suggestion.userId]?.profileImageUrl ? (
                               <img src={allProfiles[suggestion.userId].profileImageUrl} alt={suggestion.userId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                             ) : (
-                              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                                <User className="w-5 h-5 text-gray-400" />
+                              <div className="w-full h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                                <User className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                               </div>
                             )}
                           </div>
                           <div>
-                            <div className="font-bold text-gray-800 text-sm">{getDisplayName(suggestion.userId)}</div>
-                            <div className="text-[10px] text-gray-500 flex flex-wrap gap-1 mt-0.5">
+                            <div className="font-bold text-gray-800 dark:text-gray-200 text-sm">{getDisplayName(suggestion.userId)}</div>
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400 flex flex-wrap gap-1 mt-0.5">
                               {suggestion.mutualCount > 0 && (
-                                <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-medium">
+                                <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-medium">
                                   {suggestion.mutualCount} জন মিউচুয়াল বন্ধু
                                 </span>
                               )}
                               {suggestion.commonInterests.map(interest => (
-                                <span key={interest} className="bg-green-50 text-green-600 px-1.5 py-0.5 rounded-full font-medium">
+                                <span key={interest} className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded-full font-medium">
                                   #{interest}
                                 </span>
                               ))}
@@ -1663,7 +1684,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                         </div>
                         <button 
                           onClick={() => handleSendFriendRequestTo(suggestion.userId)}
-                          className="p-2 bg-blue-50 text-[#1D4ED8] rounded-lg hover:bg-blue-100 transition-colors"
+                          className="p-2 bg-blue-50 dark:bg-blue-900/30 text-[#1D4ED8] dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                           title="রিকোয়েস্ট পাঠান"
                         >
                           <UserPlus className="w-4 h-4" />
@@ -1675,27 +1696,27 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               )}
 
               {incomingRequests.length > 0 && (
-                <div className="pt-4 border-t border-gray-100">
-                  <h4 className="font-bold mb-3">আগত রিকোয়েস্ট</h4>
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                  <h4 className="font-bold mb-3 dark:text-white">আগত রিকোয়েস্ট</h4>
                   <div className="space-y-3">
                     {incomingRequests.map((req) => (
                       <div key={req.id} className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                            <User className="w-6 h-6 text-gray-500" />
+                          <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                            <User className="w-6 h-6 text-gray-500 dark:text-gray-400" />
                           </div>
-                          <span className="font-bold">{getDisplayName(req.fromUserId)}</span>
+                          <span className="font-bold dark:text-gray-200">{getDisplayName(req.fromUserId)}</span>
                         </div>
                         <div className="flex gap-2">
                           <button 
                             onClick={() => respondToFriendRequest(req.id, 'accepted', req.fromUserId, req.toUserId)}
-                            className="bg-[#1D4ED8] text-white px-4 py-1.5 rounded-md text-sm font-bold"
+                            className="bg-[#1D4ED8] dark:bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm font-bold"
                           >
                             গ্রহণ
                           </button>
                           <button 
                             onClick={() => respondToFriendRequest(req.id, 'rejected', req.fromUserId, req.toUserId)}
-                            className="bg-gray-200 text-gray-700 px-4 py-1.5 rounded-md text-sm font-bold"
+                            className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-1.5 rounded-md text-sm font-bold"
                           >
                             বাতিল
                           </button>
@@ -1712,42 +1733,42 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
       {showFriendsList && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-end">
-          <div className="bg-white h-full w-full max-w-xs shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="font-bold text-xl">আপনার বন্ধুরা</h3>
-              <button onClick={() => setShowFriendsList(false)} className="p-2 hover:bg-gray-100 rounded-full">
-                <X className="w-6 h-6" />
+          <div className="bg-white dark:bg-gray-800 h-full w-full max-w-xs shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="font-bold text-xl dark:text-white">আপনার বন্ধুরা</h3>
+              <button onClick={() => setShowFriendsList(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                <X className="w-6 h-6 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
               {incomingRequests.length > 0 && (
-                <div className="mb-4 p-2 bg-blue-50 rounded-2xl border border-blue-100">
-                  <h4 className="text-xs font-black text-blue-600 uppercase mb-3 ml-2 tracking-wider">আগত ফ্রেন্ড রিকোয়েস্ট ({incomingRequests.length})</h4>
+                <div className="mb-4 p-2 bg-blue-50 dark:bg-blue-900/30 rounded-2xl border border-blue-100 dark:border-blue-900/50">
+                  <h4 className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase mb-3 ml-2 tracking-wider">আগত ফ্রেন্ড রিকোয়েস্ট ({incomingRequests.length})</h4>
                   <div className="space-y-2">
                     {incomingRequests.map((req) => (
-                      <div key={req.id} className="bg-white p-3 rounded-xl shadow-sm border border-blue-50 flex flex-col gap-3">
+                      <div key={req.id} className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-blue-50 dark:border-blue-900/50 flex flex-col gap-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100">
+                          <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 dark:border-gray-700">
                             {allProfiles[req.fromUserId]?.profileImageUrl ? (
                               <img src={allProfiles[req.fromUserId].profileImageUrl} alt={req.fromUserId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                             ) : (
-                              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                                <User className="w-5 h-5 text-gray-400" />
+                              <div className="w-full h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                                <User className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                               </div>
                             )}
                           </div>
-                          <span className="font-bold text-gray-800">{getDisplayName(req.fromUserId)}</span>
+                          <span className="font-bold text-gray-800 dark:text-gray-200">{getDisplayName(req.fromUserId)}</span>
                         </div>
                         <div className="flex gap-2">
                           <button 
                             onClick={() => respondToFriendRequest(req.id, 'accepted', req.fromUserId, req.toUserId)}
-                            className="flex-1 bg-[#1D4ED8] text-white py-2 rounded-lg text-xs font-bold hover:bg-[#1a44c2] transition-colors"
+                            className="flex-1 bg-[#1D4ED8] dark:bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-[#1a44c2] dark:hover:bg-blue-500 transition-colors"
                           >
                             গ্রহণ করুন
                           </button>
                           <button 
                             onClick={() => respondToFriendRequest(req.id, 'rejected', req.fromUserId, req.toUserId)}
-                            className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
+                            className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 py-2 rounded-lg text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                           >
                             বাতিল
                           </button>
@@ -1758,30 +1779,30 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 </div>
               )}
 
-              <h4 className="text-xs font-black text-gray-400 uppercase mb-2 ml-2 tracking-wider">আপনার বন্ধুরা</h4>
+              <h4 className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase mb-2 ml-2 tracking-wider">আপনার বন্ধুরা</h4>
               {friends.length === 0 && incomingRequests.length === 0 ? (
-                <p className="text-center text-gray-500 py-8 italic">কোনো বন্ধু নেই</p>
+                <p className="text-center text-gray-500 dark:text-gray-400 py-8 italic">কোনো বন্ধু নেই</p>
               ) : (
                 friends.map((friendId) => (
                   <div 
                     key={friendId} 
-                    className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors relative group"
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl cursor-pointer transition-colors relative group"
                   >
                     <div 
                       onClick={() => {
                         setViewingProfileId(friendId);
                         setShowFriendsList(false);
                       }}
-                      className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 relative hover:scale-105 transition-transform"
+                      className="w-12 h-12 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 relative hover:scale-105 transition-transform"
                     >
                       {allProfiles[friendId]?.profileImageUrl ? (
                         <img src={allProfiles[friendId].profileImageUrl} alt={friendId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       ) : (
-                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                          <User className="w-6 h-6 text-gray-500" />
+                        <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                          <User className="w-6 h-6 text-gray-500 dark:text-gray-400" />
                         </div>
                       )}
-                      <div className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                      <div className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 dark:bg-green-400 border-2 border-white dark:border-gray-800 rounded-full"></div>
                     </div>
                     <div 
                       className="flex-1"
@@ -1790,9 +1811,9 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                         setShowFriendsList(false);
                       }}
                     >
-                      <p className="font-bold text-gray-800 group-hover:text-[#1D4ED8] transition-colors">{getDisplayName(friendId)}</p>
+                      <p className="font-bold text-gray-800 dark:text-gray-200 group-hover:text-[#1D4ED8] dark:group-hover:text-blue-400 transition-colors">{getDisplayName(friendId)}</p>
                       {allProfiles[friendId]?.location && (
-                        <p className="text-[10px] text-gray-500">{allProfiles[friendId].location}</p>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400">{allProfiles[friendId].location}</p>
                       )}
                     </div>
                     <button 
@@ -1801,7 +1822,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                         setActiveChatFriend(friendId);
                         setShowFriendsList(false);
                       }}
-                      className="p-2 hover:bg-blue-50 text-blue-600 rounded-full transition-colors"
+                      className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full transition-colors"
                       title="মেসেজ পাঠান"
                     >
                       <MessageSquare className="w-5 h-5" />
@@ -1812,7 +1833,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                         initiateCall(userId, friendId, 'audio');
                         setShowFriendsList(false);
                       }}
-                      className="p-2 hover:bg-blue-50 text-blue-600 rounded-full transition-colors"
+                      className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full transition-colors"
                       title="অডিও কল"
                     >
                       <Phone className="w-5 h-5" />
@@ -1823,7 +1844,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                         initiateCall(userId, friendId, 'video');
                         setShowFriendsList(false);
                       }}
-                      className="p-2 hover:bg-blue-50 text-blue-600 rounded-full transition-colors"
+                      className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full transition-colors"
                       title="ভিডিও কল"
                     >
                       <Video className="w-5 h-5" />
@@ -1873,13 +1894,13 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 </div>
               )}
             </div>
-            <div className="p-4 border-t border-gray-100">
+            <div className="p-4 border-t border-gray-100 dark:border-gray-700">
               <button 
                 onClick={() => {
                   setIsAddingFriend(true);
                   setShowFriendsList(false);
                 }}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-[#1D4ED8] text-white rounded-xl font-bold shadow-lg shadow-blue-200"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-[#1D4ED8] dark:bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 dark:shadow-none hover:bg-[#1a44c2] dark:hover:bg-blue-500 transition-all"
               >
                 <UserPlus className="w-5 h-5" />
                 নতুন বন্ধু খুঁজুন
@@ -1891,58 +1912,58 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
       {showAdminPanel && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[150] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
             {/* Admin Header */}
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-red-50">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-red-50 dark:bg-red-900/20">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-red-100 rounded-2xl text-red-600">
+                <div className="p-3 bg-red-100 dark:bg-red-900/40 rounded-2xl text-red-600 dark:text-red-400">
                   <Shield className="w-8 h-8" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-gray-900">অ্যাডমিন প্যানেল</h2>
-                  <p className="text-sm text-gray-500 font-medium">ইউজার ম্যানেজমেন্ট ও রেজিস্ট্রেশন তথ্য</p>
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-white">অ্যাডমিন প্যানেল</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">ইউজার ম্যানেজমেন্ট ও রেজিস্ট্রেশন তথ্য</p>
                 </div>
               </div>
               <button 
                 onClick={() => setShowAdminPanel(false)}
-                className="p-3 hover:bg-white rounded-2xl transition-colors text-gray-400 hover:text-gray-600 shadow-sm"
+                className="p-3 hover:bg-white dark:hover:bg-gray-700 rounded-2xl transition-colors text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 shadow-sm"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             {/* Admin Tabs */}
-            <div className="flex border-b border-gray-100 bg-white px-6">
+            <div className="flex border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 px-6">
               <button 
                 onClick={() => setAdminTab('accounts')}
-                className={`py-4 px-6 font-bold text-sm transition-all border-b-2 ${adminTab === 'accounts' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                className={`py-4 px-6 font-bold text-sm transition-all border-b-2 ${adminTab === 'accounts' ? 'border-red-500 text-red-600 dark:text-red-400' : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
               >
                 ইউজার অ্যাকাউন্টস ({userAccounts.length})
               </button>
               <button 
                 onClick={() => setAdminTab('requests')}
-                className={`py-4 px-6 font-bold text-sm transition-all border-b-2 ${adminTab === 'requests' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                className={`py-4 px-6 font-bold text-sm transition-all border-b-2 ${adminTab === 'requests' ? 'border-red-500 text-red-600 dark:text-red-400' : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
               >
                 রেজিস্ট্রেশন রিকোয়েস্ট ({registrationRequests.filter(r => r.status === 'pending').length})
               </button>
             </div>
 
             {/* Admin Search */}
-            <div className="p-6 bg-white border-b border-gray-50">
+            <div className="p-6 bg-white dark:bg-gray-800 border-b border-gray-50 dark:border-gray-700">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
                 <input 
                   type="text"
                   placeholder={adminTab === 'accounts' ? "ইউজার আইডি বা মোবাইল নম্বর দিয়ে খুঁজুন..." : "নাম বা মোবাইল নম্বর দিয়ে খুঁজুন..."}
                   value={adminSearchTerm}
                   onChange={(e) => setAdminSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-red-200 transition-all text-gray-800 font-medium"
+                  className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-700 border-none rounded-2xl focus:ring-2 focus:ring-red-200 dark:focus:ring-red-900/50 transition-all text-gray-800 dark:text-white font-medium placeholder-gray-400 dark:placeholder-gray-500"
                 />
               </div>
             </div>
 
             {/* Content List */}
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-gray-50/30">
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-gray-50/30 dark:bg-gray-900/30">
               <div className="grid gap-4">
                 {adminTab === 'accounts' ? (
                   userAccounts
@@ -1951,24 +1972,24 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                       (acc.mobile || '').includes(adminSearchTerm)
                     )
                     .map((acc) => (
-                      <div key={acc.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4 group">
+                      <div key={acc.id} className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4 group">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xl">
+                          <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xl">
                             {(acc.userId || 'U').charAt(0).toUpperCase()}
                           </div>
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-black text-gray-900 text-lg">{acc.userId}</span>
-                              <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">User</span>
+                              <span className="font-black text-gray-900 dark:text-white text-lg">{acc.userId}</span>
+                              <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">User</span>
                             </div>
                             <div className="flex flex-wrap gap-3">
-                              <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                              <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
                                 <Phone className="w-3.5 h-3.5" />
                                 <span className="font-medium">{acc.mobile}</span>
                               </div>
-                              <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                              <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
                                 <Lock className="w-3.5 h-3.5" />
-                                <span className="font-mono bg-gray-50 px-1.5 rounded border border-gray-100">{acc.password}</span>
+                                <span className="font-mono bg-gray-50 dark:bg-gray-700 px-1.5 rounded border border-gray-100 dark:border-gray-600">{acc.password}</span>
                               </div>
                             </div>
                           </div>
@@ -1976,7 +1997,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button 
                             onClick={() => setEditingAccount(acc)}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-100 transition-colors"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl font-bold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                           >
                             <Edit className="w-4 h-4" />
                             এডিট
@@ -1992,7 +2013,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                                 }
                               }
                             }}
-                            className="p-2.5 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors"
+                            className="p-2.5 text-red-400 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded-xl transition-colors"
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
@@ -2006,24 +2027,24 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                       (req.mobile || '').includes(adminSearchTerm)
                     )
                     .map((req) => (
-                      <div key={req.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div key={req.id} className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl ${req.status === 'approved' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl ${req.status === 'approved' ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'}`}>
                             {(req.name || 'R').charAt(0).toUpperCase()}
                           </div>
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-black text-gray-900 text-lg">{req.name}</span>
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${req.status === 'approved' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                              <span className="font-black text-gray-900 dark:text-white text-lg">{req.name}</span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${req.status === 'approved' ? 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400' : 'bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400'}`}>
                                 {req.status === 'approved' ? 'Approved' : 'Pending'}
                               </span>
                             </div>
                             <div className="flex flex-wrap gap-3">
-                              <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                              <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
                                 <Phone className="w-3.5 h-3.5" />
                                 <span className="font-medium">{req.mobile}</span>
                               </div>
-                              <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                              <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
                                 <Bell className="w-3.5 h-3.5" />
                                 <span className="text-xs">{req.email}</span>
                               </div>
@@ -2048,8 +2069,8 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 
                 {((adminTab === 'accounts' && userAccounts.length === 0) || (adminTab === 'requests' && registrationRequests.length === 0)) && (
                   <div className="text-center py-20">
-                    <Users className="w-20 h-20 text-gray-200 mx-auto mb-4" />
-                    <p className="text-gray-400 font-bold text-xl">কোনো তথ্য পাওয়া যায়নি</p>
+                    <Users className="w-20 h-20 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
+                    <p className="text-gray-400 dark:text-gray-500 font-bold text-xl">কোনো তথ্য পাওয়া যায়নি</p>
                   </div>
                 )}
               </div>
@@ -2061,10 +2082,10 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       {/* Edit User Modal */}
       {editingAccount && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-blue-50">
-              <h3 className="text-xl font-black text-gray-900">ইউজার তথ্য পরিবর্তন</h3>
-              <button onClick={() => setEditingAccount(null)} className="p-2 hover:bg-white rounded-xl transition-colors text-gray-400">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-blue-50 dark:bg-blue-900/20">
+              <h3 className="text-xl font-black text-gray-900 dark:text-white">ইউজার তথ্য পরিবর্তন</h3>
+              <button onClick={() => setEditingAccount(null)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-400 dark:text-gray-500">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -2087,44 +2108,44 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
               className="p-6 space-y-4"
             >
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase ml-1">ইউজার আইডি</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">ইউজার আইডি</label>
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
                   <input 
                     name="userId"
                     defaultValue={editingAccount.userId}
-                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-200 font-bold text-gray-800"
+                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-700 border-none rounded-2xl focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900/50 font-bold text-gray-800 dark:text-white"
                     required
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase ml-1">মোবাইল নম্বর</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">মোবাইল নম্বর</label>
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
                   <input 
                     name="mobile"
                     defaultValue={editingAccount.mobile}
-                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-200 font-bold text-gray-800"
+                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-700 border-none rounded-2xl focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900/50 font-bold text-gray-800 dark:text-white"
                     required
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase ml-1">পাসওয়ার্ড</label>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">পাসওয়ার্ড</label>
                 <div className="relative">
-                  <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
                   <input 
                     name="password"
                     defaultValue={editingAccount.password}
-                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-200 font-bold text-gray-800"
+                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-700 border-none rounded-2xl focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900/50 font-bold text-gray-800 dark:text-white"
                     required
                   />
                 </div>
               </div>
               <button 
                 type="submit"
-                className="w-full py-4 bg-[#1D4ED8] text-white rounded-2xl font-black shadow-lg shadow-blue-200 hover:scale-[1.02] active:scale-95 transition-all mt-4"
+                className="w-full py-4 bg-[#1D4ED8] dark:bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 dark:shadow-none hover:scale-[1.02] active:scale-95 transition-all mt-4 hover:bg-[#1a44c2] dark:hover:bg-blue-500"
               >
                 তথ্য সংরক্ষণ করুন
               </button>
@@ -2134,28 +2155,28 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       )}
 
       {isCreatingPost && (
-        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-2xl border border-gray-200 w-full max-w-[500px] overflow-hidden">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="font-bold text-xl text-center flex-1">পোস্ট তৈরি করুন</h3>
-              <button onClick={() => setIsCreatingPost(false)} className="p-2 hover:bg-gray-100 rounded-full bg-gray-100">
+        <div className="fixed inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-[500px] overflow-hidden">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="font-bold text-xl text-center flex-1 dark:text-white">পোস্ট তৈরি করুন</h3>
+              <button onClick={() => setIsCreatingPost(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full overflow-hidden">
+                <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 dark:border-gray-700">
                   {userProfile?.profileImageUrl ? (
                     <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                      <User className="w-6 h-6 text-gray-500" />
+                    <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                      <User className="w-6 h-6 text-gray-500 dark:text-gray-400" />
                     </div>
                   )}
                 </div>
                 <div>
-                  <p className="font-bold text-gray-900">{getDisplayName(userId)}</p>
-                  <div className="bg-gray-200 px-2 py-0.5 rounded flex items-center gap-1 text-xs font-bold w-fit">
+                  <p className="font-bold text-gray-900 dark:text-white">{getDisplayName(userId)}</p>
+                  <div className="bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded flex items-center gap-1 text-xs font-bold w-fit text-gray-600 dark:text-gray-300">
                     <Users className="w-3 h-3" /> বন্ধুরা
                   </div>
                 </div>
@@ -2165,34 +2186,34 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={`${getDisplayName(userId)}, আপনি এখন কী ভাবছেন?`}
-                className="w-full min-h-[150px] text-xl outline-none resize-none placeholder-gray-500"
+                className="w-full min-h-[150px] text-xl outline-none resize-none placeholder-gray-500 dark:placeholder-gray-400 bg-transparent dark:text-white"
               />
 
               {selectedImage && (
-                <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-200">
+                <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                   <img src={selectedImage} alt="Selected" className="w-full max-h-[300px] object-cover" referrerPolicy="no-referrer" />
                   <button 
                     onClick={() => setSelectedImage(null)}
-                    className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md hover:bg-gray-100"
+                    className="absolute top-2 right-2 p-1 bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
               )}
 
-              <div className="mt-4 p-3 border border-gray-300 rounded-lg flex items-center justify-between">
-                <span className="font-semibold text-gray-700">আপনার পোস্টে যোগ করুন</span>
+              <div className="mt-4 p-3 border border-gray-300 dark:border-gray-700 rounded-lg flex items-center justify-between">
+                <span className="font-semibold text-gray-700 dark:text-gray-300">আপনার পোস্টে যোগ করুন</span>
                 <div className="flex gap-2">
                   <button 
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                   >
                     <ImageIcon className="w-6 h-6 text-[#42B72A]" />
                   </button>
-                  <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                    <UserPlus className="w-6 h-6 text-[#1D4ED8]" />
+                  <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                    <UserPlus className="w-6 h-6 text-[#1D4ED8] dark:text-blue-400" />
                   </button>
-                  <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
                     <Heart className="w-6 h-6 text-yellow-500" />
                   </button>
                 </div>
@@ -2203,7 +2224,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 onClick={handleSubmit}
                 disabled={isSubmitting || !message.trim()}
                 className={`w-full mt-4 py-2 rounded-lg font-bold text-white transition-all ${
-                  isSubmitting || !message.trim() ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#1D4ED8] hover:bg-[#1a44c2]'
+                  isSubmitting || !message.trim() ? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed text-gray-500 dark:text-gray-500' : 'bg-[#1D4ED8] dark:bg-blue-600 hover:bg-[#1a44c2] dark:hover:bg-blue-500'
                 }`}
               >
                 {isSubmitting ? 'পোস্ট হচ্ছে...' : 'পোস্ট করুন'}
@@ -2214,40 +2235,40 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
       )}
 
       {isUpdatingProfile && (
-        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-2xl border border-gray-200 w-full max-w-md overflow-hidden">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="font-bold text-xl">প্রোফাইল আপডেট</h3>
-              <button onClick={() => setIsUpdatingProfile(false)} className="p-1 hover:bg-gray-100 rounded-full">
+        <div className="fixed inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="font-bold text-xl dark:text-white">প্রোফাইল আপডেট</h3>
+              <button onClick={() => setIsUpdatingProfile(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-6 text-center space-y-6">
               <div className="relative inline-block group">
-                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-[#1D4ED8] bg-gray-100">
+                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-[#1D4ED8] dark:border-blue-500 bg-gray-100 dark:bg-gray-700">
                   {userProfile?.profileImageUrl ? (
                     <img src={userProfile.profileImageUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <User className="w-16 h-16 text-gray-300" />
+                      <User className="w-16 h-16 text-gray-300 dark:text-gray-500" />
                     </div>
                   )}
                 </div>
                 <button 
                   onClick={() => profileInputRef.current?.click()}
-                  className="absolute bottom-1 right-1 bg-[#1D4ED8] text-white p-2 rounded-full shadow-lg hover:bg-[#1a44c2] transition-all"
+                  className="absolute bottom-1 right-1 bg-[#1D4ED8] dark:bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-[#1a44c2] dark:hover:bg-blue-500 transition-all"
                 >
                   <Camera className="w-5 h-5" />
                 </button>
                 <input type="file" accept="image/*" className="hidden" ref={profileInputRef} onChange={handleProfileImageChange} />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">{getDisplayName(userId)}</h2>
-                <p className="text-gray-500">আপনার প্রোফাইল ছবি পরিবর্তন করুন</p>
+                <h2 className="text-2xl font-bold dark:text-white">{getDisplayName(userId)}</h2>
+                <p className="text-gray-500 dark:text-gray-400">আপনার প্রোফাইল ছবি পরিবর্তন করুন</p>
               </div>
               <button 
                 onClick={() => setIsUpdatingProfile(false)}
-                className="w-full bg-[#1D4ED8] text-white font-bold py-3 rounded-lg"
+                className="w-full bg-[#1D4ED8] dark:bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-[#1a44c2] dark:hover:bg-blue-500 transition-colors"
               >
                 সম্পন্ন
               </button>
