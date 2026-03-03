@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Send, User, ArrowLeft, MessageSquare, Image as ImageIcon, Trash2, Shield, Users, Link as LinkIcon, X, Check, UserPlus, Plus } from 'lucide-react';
+import { Send, User, ArrowLeft, MessageSquare, Image as ImageIcon, Trash2, Shield, Users, Link as LinkIcon, X, Check, UserPlus, Plus, Edit, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Group, GroupMessage } from '../types';
 
@@ -13,7 +13,8 @@ interface GroupChatProps {
   onBack: () => void;
 }
 
-const GroupChat: React.FC<GroupChatProps> = ({ userId, userName, group, friends, onBack }) => {
+const GroupChat: React.FC<GroupChatProps> = ({ userId, userName, group: initialGroup, friends, onBack }) => {
+  const [group, setGroup] = useState<Group>(initialGroup);
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [input, setInput] = useState('');
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -21,10 +22,15 @@ const GroupChat: React.FC<GroupChatProps> = ({ userId, userName, group, friends,
   const [showMembers, setShowMembers] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showAddFriend, setShowAddFriend] = useState(false);
+  const [showEditGroup, setShowEditGroup] = useState(false);
+  const [editName, setEditName] = useState(group.name);
+  const [editDesc, setEditDesc] = useState(group.description || '');
+  const [editImage, setEditImage] = useState(group.imageUrl || '');
   const [addedMemberStatus, setAddedMemberStatus] = useState<{ [key: string]: string }>({});
   const [removedMemberStatus, setRemovedMemberStatus] = useState<{ [key: string]: string }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const groupImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const newSocket = io();
@@ -74,6 +80,15 @@ const GroupChat: React.FC<GroupChatProps> = ({ userId, userName, group, friends,
       }
     });
 
+    newSocket.on('group_updated', (updatedGroup: Group) => {
+      if (updatedGroup.id === group.id) {
+        setGroup(updatedGroup);
+        setEditName(updatedGroup.name);
+        setEditDesc(updatedGroup.description || '');
+        setEditImage(updatedGroup.imageUrl || '');
+      }
+    });
+
     return () => {
       newSocket.close();
     };
@@ -82,6 +97,31 @@ const GroupChat: React.FC<GroupChatProps> = ({ userId, userName, group, friends,
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const handleUpdateGroup = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (socket && group.adminId === userId) {
+      socket.emit('update_group', {
+        groupId: group.id,
+        adminId: userId,
+        name: editName,
+        description: editDesc,
+        imageUrl: editImage
+      });
+      setShowEditGroup(false);
+    }
+  };
+
+  const handleGroupImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,23 +222,48 @@ const GroupChat: React.FC<GroupChatProps> = ({ userId, userName, group, friends,
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <div className="cursor-pointer" onClick={() => setShowMembers(true)}>
-            <h1 className="text-xl font-bold text-rose-600 flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              {group.name}
-            </h1>
-            <p className="text-[10px] text-rose-400">{group.members?.length || 1} মেম্বার • বিস্তারিত দেখুন</p>
+          <div className="cursor-pointer flex items-center gap-3" onClick={() => setShowMembers(true)}>
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-rose-100 flex items-center justify-center text-rose-500 border border-rose-200">
+              {group.imageUrl ? (
+                <img src={group.imageUrl} alt={group.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <Users className="w-6 h-6" />
+              )}
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-rose-600 truncate max-w-[150px]">
+                {group.name}
+              </h1>
+              <p className="text-[10px] text-rose-400">{group.members?.length || 1} মেম্বার • বিস্তারিত</p>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {group.adminId === userId && (
-            <button 
-              onClick={() => setShowAddFriend(true)}
-              className="p-2 bg-rose-100 text-rose-600 rounded-full hover:bg-rose-200 transition-colors"
-              title="বন্ধু যুক্ত করুন"
-            >
-              <UserPlus className="w-4 h-4" />
-            </button>
+            <>
+              <button 
+                onClick={() => setShowEditGroup(true)}
+                className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all"
+                title="গ্রুপ এডিট"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={handleDeleteGroup}
+                className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all"
+                title="গ্রুপ ডিলেট"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <div className="w-px h-6 bg-rose-100 mx-1" />
+              <button 
+                onClick={() => setShowAddFriend(true)}
+                className="p-2 bg-rose-100 text-rose-600 rounded-full hover:bg-rose-200 transition-colors"
+                title="বন্ধু যুক্ত করুন"
+              >
+                <UserPlus className="w-4 h-4" />
+              </button>
+            </>
           )}
           <button 
             onClick={() => setShowInvite(true)}
@@ -310,6 +375,86 @@ const GroupChat: React.FC<GroupChatProps> = ({ userId, userName, group, friends,
           </button>
         </div>
       </form>
+
+      {/* Edit Group Modal */}
+      <AnimatePresence>
+        {showEditGroup && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl overflow-hidden flex flex-col"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-rose-600">গ্রুপ তথ্য পরিবর্তন</h2>
+                <button onClick={() => setShowEditGroup(false)} className="p-2 hover:bg-rose-50 rounded-full">
+                  <X className="w-5 h-5 text-rose-400" />
+                </button>
+              </div>
+              
+              <form onSubmit={handleUpdateGroup} className="space-y-4">
+                <div className="flex flex-col items-center gap-3 mb-4">
+                  <div className="relative group">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-rose-50 border-4 border-rose-100 flex items-center justify-center text-rose-300">
+                      {editImage ? (
+                        <img src={editImage} alt="Group" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <Users className="w-12 h-12" />
+                      )}
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => groupImageInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 p-2 bg-rose-500 text-white rounded-full shadow-lg hover:bg-rose-600 transition-all"
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                    <input 
+                      type="file" 
+                      ref={groupImageInputRef} 
+                      onChange={handleGroupImageChange} 
+                      accept="image/*" 
+                      className="hidden" 
+                    />
+                  </div>
+                  <p className="text-xs text-rose-400">গ্রুপ প্রোফাইল ছবি পরিবর্তন করুন</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-rose-400 ml-2 mb-1 block">গ্রুপের নাম</label>
+                  <input 
+                    type="text" 
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-4 py-3 bg-rose-50 rounded-xl border-none focus:ring-2 focus:ring-rose-400 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-rose-400 ml-2 mb-1 block">গ্রুপ বর্ণনা</label>
+                  <textarea 
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    className="w-full px-4 py-3 bg-rose-50 rounded-xl border-none focus:ring-2 focus:ring-rose-400 outline-none resize-none h-24"
+                  />
+                </div>
+                <button 
+                  type="submit"
+                  className="w-full py-3 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 transition-all shadow-lg shadow-rose-200"
+                >
+                  আপডেট করুন
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Members Modal */}
       <AnimatePresence>

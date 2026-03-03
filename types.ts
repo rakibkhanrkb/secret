@@ -103,6 +103,7 @@ export interface Group {
   id: string;
   name: string;
   description?: string;
+  imageUrl?: string;
   adminId: string;
   members: string[]; // User IDs
   inviteCode: string;

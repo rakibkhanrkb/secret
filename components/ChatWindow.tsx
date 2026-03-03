@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { sendChatMessage, subscribeToChat, markMessagesAsRead, subscribeToUserProfile, deleteChatMessage, initiateCall, setTypingStatus, subscribeToTypingStatus, getPost } from '../services/firebase';
-import { Send, X, User, ArrowLeft, Image as ImageIcon, Loader2, Check, Trash2, Phone, Video, Share2 } from 'lucide-react';
+import { sendChatMessage, subscribeToChat, markMessagesAsRead, subscribeToUserProfile, deleteChatMessage, initiateCall, setTypingStatus, subscribeToTypingStatus, getPost, uploadFile } from '../services/firebase';
+import { Send, X, User, ArrowLeft, Image as ImageIcon, Loader2, Check, Trash2, Phone, Video, Share2, Paperclip, FileText, Download } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ChatMessage, UserProfile, Post } from '../types';
-import { compressImage } from '@/src/utils/imageUtils';
+import { compressImage, compressImageToBlob, base64ToBlob, compressForChat } from '@/src/utils/imageUtils';
 
 interface ChatWindowProps {
   userId: string;
@@ -18,12 +18,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [friendTyping, setFriendTyping] = useState(false);
   const [sharedPosts, setSharedPosts] = useState<{ [postId: string]: Post }>({});
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const formatMessageDate = (timestamp: number) => {
@@ -104,15 +107,76 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() && !selectedImage) return;
+    if (!inputText.trim() && !selectedImage && !selectedFile) return;
 
     setIsSending(true);
+    
+    // Clear inputs immediately for better UX (Optimistic feel)
+    const textToSend = inputText.trim();
+    const imageToSend = selectedImage;
+    const fileToSend = selectedFile;
+    
+    setInputText('');
+    setSelectedImage(null);
+    setSelectedFile(null);
+
     try {
-      await sendChatMessage(userId, friendId, inputText.trim(), selectedImage || undefined);
-      setInputText('');
-      setSelectedImage(null);
+      let fileData = undefined;
+      let finalImageUrl = imageToSend || undefined;
+      
+      if (fileToSend) {
+        try {
+          let fileToUpload: File | Blob = fileToSend;
+          
+          if (fileToSend.type.startsWith('image/') && imageToSend) {
+            try {
+              // Convert the already-compressed preview image to a blob for upload
+              // This is much faster than re-compressing or uploading the original
+              fileToUpload = base64ToBlob(imageToSend);
+            } catch (err) {
+              console.warn("Base64 to Blob conversion failed, using original file:", err);
+            }
+          }
+          
+          const url = await uploadFile(fileToUpload, fileToSend.name);
+          
+          if (fileToSend.type.startsWith('image/')) {
+            finalImageUrl = url;
+          } else {
+            fileData = {
+              url,
+              name: fileToSend.name,
+              type: fileToSend.type,
+              size: fileToSend.size
+            };
+          }
+        } catch (storageError) {
+          console.error("Storage upload failed, checking for fallback:", storageError);
+          if (fileToSend.type.startsWith('image/') && imageToSend) {
+            if (imageToSend.length * 0.75 > 1024 * 1024) {
+              throw new Error("Storage upload failed and image is too large for database fallback. (Max 1MB)");
+            }
+          } else {
+            throw storageError;
+          }
+        }
+      }
+
+      await sendChatMessage(
+        userId, 
+        friendId, 
+        textToSend, 
+        finalImageUrl, 
+        undefined, 
+        fileData
+      );
     } catch (error) {
-      alert('মেসেজ পাঠাতে সমস্যা হয়েছে।');
+      console.error("Send error:", error);
+      // Restore inputs if sending fails completely
+      setInputText(textToSend);
+      setSelectedImage(imageToSend);
+      setSelectedFile(fileToSend);
+      alert('মেসেজ পাঠাতে সমস্যা হয়েছে। (Error: ' + (error as any).message + ')');
     } finally {
       setIsSending(false);
     }
@@ -121,17 +185,41 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        alert('ছবির সাইজ ১০ মেগাবাইটের বেশি হতে পারবে না।');
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onloadend = async () => {
         try {
-          const compressed = await compressImage(reader.result as string);
+          // Use more aggressive compression for faster chat experience
+          const compressed = await compressForChat(reader.result as string);
           setSelectedImage(compressed);
+          setSelectedFile(file); 
         } catch (error) {
-          console.error("Chat image compression error:", error);
+          console.error("Image preview error:", error);
+          // Fallback to original if compression fails
           setSelectedImage(reader.result as string);
+          setSelectedFile(file);
         }
       };
       reader.readAsDataURL(file);
+      setShowAttachMenu(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        alert('ফাইল সাইজ ১০ মেগাবাইটের বেশি হতে পারবে না।');
+        return;
+      }
+      
+      setSelectedFile(file);
+      setSelectedImage(null);
+      setShowAttachMenu(false);
     }
   };
 
@@ -251,6 +339,30 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
                       <p className="text-xs line-clamp-2 opacity-90">{sharedPosts[msg.sharedPostId].content}</p>
                     </div>
                   )}
+                  {msg.fileUrl && (
+                    <div className="mb-2 p-2 bg-white/10 dark:bg-black/20 rounded-lg border border-white/20 dark:border-white/10 flex items-center gap-3">
+                      <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                        {msg.fileType?.startsWith('image/') ? (
+                          <ImageIcon className="w-6 h-6 text-blue-500" />
+                        ) : (
+                          <FileText className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{msg.fileName}</p>
+                        <p className="text-xs opacity-70">{(msg.fileSize ? (msg.fileSize / 1024 / 1024).toFixed(2) : '0')} MB</p>
+                      </div>
+                      <a 
+                        href={msg.fileUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                        download
+                      >
+                        <Download className="w-5 h-5" />
+                      </a>
+                    </div>
+                  )}
                   {msg.content && <p className="leading-tight">{msg.content}</p>}
                   <div className="flex items-center justify-end gap-1 mt-1 opacity-70">
                     {msg.fromUserId === userId && (
@@ -282,16 +394,27 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Image Preview */}
-      {selectedImage && (
+      {/* File Preview */}
+      {(selectedImage || selectedFile) && (
         <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 relative">
-          <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
-            <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          <div className="relative w-full max-w-[200px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 flex items-center gap-2">
+            {selectedImage ? (
+              <img src={selectedImage} alt="Preview" className="w-10 h-10 object-cover rounded" referrerPolicy="no-referrer" />
+            ) : (
+              <FileText className="w-10 h-10 text-gray-400" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate dark:text-white">{selectedFile?.name || 'Image'}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{(selectedFile?.size ? (selectedFile.size / 1024 / 1024).toFixed(2) : '0')} MB</p>
+            </div>
             <button 
-              onClick={() => setSelectedImage(null)}
-              className="absolute top-1 right-1 p-0.5 bg-black/50 text-white rounded-full hover:bg-black/70"
+              onClick={() => {
+                setSelectedImage(null);
+                setSelectedFile(null);
+              }}
+              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
             >
-              <X className="w-3 h-3" />
+              <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
             </button>
           </div>
         </div>
@@ -301,18 +424,52 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
       <form onSubmit={handleSend} className="p-3 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex gap-2 items-center">
         <input 
           type="file" 
-          accept="image/*" 
           className="hidden" 
           ref={fileInputRef}
+          onChange={handleFileSelect}
+        />
+        <input 
+          type="file" 
+          accept="image/*"
+          className="hidden" 
+          ref={imageInputRef}
           onChange={handleImageSelect}
         />
-        <button 
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-        >
-          <ImageIcon className="w-5 h-5" />
-        </button>
+        
+        <div className="relative">
+          <button 
+            type="button"
+            onClick={() => setShowAttachMenu(!showAttachMenu)}
+            className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
+          
+          {showAttachMenu && (
+            <div className="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden min-w-[150px] z-50 animate-in slide-in-from-bottom-2 duration-200">
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-colors"
+              >
+                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-full text-blue-600 dark:text-blue-400">
+                  <ImageIcon className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">ছবি (Image)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-colors border-t border-gray-100 dark:border-gray-700"
+              >
+                <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-full text-purple-600 dark:text-purple-400">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">ফাইল (File)</span>
+              </button>
+            </div>
+          )}
+        </div>
         <div className="flex-1 bg-[#F0F2F5] dark:bg-gray-700 rounded-full flex items-center px-3">
           <input
             type="text"

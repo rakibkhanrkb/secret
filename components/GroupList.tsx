@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Plus, Users, ArrowLeft, Search, Link as LinkIcon, MessageSquare, Shield } from 'lucide-react';
+import { Plus, Users, ArrowLeft, Search, Link as LinkIcon, MessageSquare, Shield, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Group } from '../types';
 
@@ -18,8 +18,10 @@ const GroupList: React.FC<GroupListProps> = ({ userId, onBack, onSelectGroup }) 
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDesc, setNewGroupDesc] = useState('');
+  const [newGroupImage, setNewGroupImage] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
+  const groupImageInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const newSocket = io();
@@ -36,6 +38,7 @@ const GroupList: React.FC<GroupListProps> = ({ userId, onBack, onSelectGroup }) 
       setShowCreateModal(false);
       setNewGroupName('');
       setNewGroupDesc('');
+      setNewGroupImage('');
     });
 
     newSocket.on('join_success', (group: Group) => {
@@ -68,8 +71,20 @@ const GroupList: React.FC<GroupListProps> = ({ userId, onBack, onSelectGroup }) 
       socket.emit('create_group', {
         userId,
         name: newGroupName.trim(),
-        description: newGroupDesc.trim()
+        description: newGroupDesc.trim(),
+        imageUrl: newGroupImage
       });
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewGroupImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -133,8 +148,12 @@ const GroupList: React.FC<GroupListProps> = ({ userId, onBack, onSelectGroup }) 
               onClick={() => onSelectGroup(group)}
               className="bg-white p-4 rounded-2xl shadow-sm border border-rose-50 cursor-pointer flex items-center gap-4 hover:border-rose-200 transition-all"
             >
-              <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-500">
-                <Users className="w-6 h-6" />
+              <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-500 overflow-hidden border border-rose-100">
+                {group.imageUrl ? (
+                  <img src={group.imageUrl} alt={group.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <Users className="w-6 h-6" />
+                )}
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
@@ -170,6 +189,33 @@ const GroupList: React.FC<GroupListProps> = ({ userId, onBack, onSelectGroup }) 
             >
               <h2 className="text-2xl font-bold text-rose-600 mb-4">নতুন গ্রুপ তৈরি করুন</h2>
               <form onSubmit={handleCreateGroup} className="space-y-4">
+                <div className="flex flex-col items-center gap-3 mb-4">
+                  <div className="relative group">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-rose-50 border-4 border-rose-100 flex items-center justify-center text-rose-300">
+                      {newGroupImage ? (
+                        <img src={newGroupImage} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <Users className="w-12 h-12" />
+                      )}
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => groupImageInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 p-2 bg-rose-500 text-white rounded-full shadow-lg hover:bg-rose-600 transition-all"
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                    <input 
+                      type="file" 
+                      ref={groupImageInputRef} 
+                      onChange={handleImageChange} 
+                      accept="image/*" 
+                      className="hidden" 
+                    />
+                  </div>
+                  <p className="text-xs text-rose-400">গ্রুপ প্রোফাইল ছবি দিন</p>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-rose-400 uppercase mb-1">গ্রুপের নাম</label>
                   <input 

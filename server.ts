@@ -49,6 +49,7 @@ async function startServer() {
         id: Date.now().toString(),
         name: data.name,
         description: data.description,
+        imageUrl: data.imageUrl,
         adminId: data.userId,
         members: [data.userId],
         inviteCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
@@ -57,7 +58,19 @@ async function startServer() {
       groups.push(newGroup);
       groupMessages[newGroup.id] = [];
       socket.emit("group_created", newGroup);
-      io.emit("new_group_available", newGroup); // Notify everyone about new group (optional)
+      io.emit("new_group_available", newGroup);
+      io.emit("groups_updated");
+    });
+
+    socket.on("update_group", (data) => {
+      const group = groups.find(g => g.id === data.groupId && g.adminId === data.adminId);
+      if (group) {
+        group.name = data.name || group.name;
+        group.description = data.description || group.description;
+        group.imageUrl = data.imageUrl || group.imageUrl;
+        io.to(data.groupId).emit("group_updated", group);
+        io.emit("groups_updated");
+      }
     });
 
     socket.on("join_group_by_code", (data) => {
