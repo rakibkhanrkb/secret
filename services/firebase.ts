@@ -298,16 +298,26 @@ export const unfriend = async (userId: string, friendId: string) => {
   }
 };
 
-export const uploadFile = async (file: File): Promise<string> => {
-  try {
-    const storageRef = ref(storage, `chat_files/${Date.now()}_${file.name}`);
-    const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
-  } catch (error) {
-    console.error("Error uploading file:", error);
-    throw error;
-  }
+export const uploadFile = async (file: File | Blob, fileName?: string): Promise<string> => {
+  const uploadPromise = (async () => {
+    try {
+      const name = fileName || (file as File).name || `file_${Date.now()}`;
+      const storageRef = ref(storage, `chat_files/${Date.now()}_${name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      return downloadURL;
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      throw error;
+    }
+  })();
+
+  // 30 second timeout for uploads
+  const timeoutPromise = new Promise<string>((_, reject) => {
+    setTimeout(() => reject(new Error('Upload timeout (30s)')), 30000);
+  });
+
+  return Promise.race([uploadPromise, timeoutPromise]);
 };
 
 export const sendChatMessage = async (

@@ -42,10 +42,6 @@ export interface ChatMessage {
   toUserId: string;
   content: string;
   imageUrl?: string;
-  fileUrl?: string;
-  fileName?: string;
-  fileType?: string;
-  fileSize?: number;
   sharedPostId?: string;
   read: boolean;
   createdAt: number;
@@ -103,6 +99,26 @@ export interface UserAccount {
   createdAt: number;
 }
 
+export interface Group {
+  id: string;
+  name: string;
+  description?: string;
+  adminId: string;
+  members: string[]; // User IDs
+  inviteCode: string;
+  createdAt: number;
+}
+
+export interface GroupMessage {
+  id: string;
+  groupId: string;
+  userId: string;
+  userName: string;
+  content: string;
+  imageUrl?: string;
+  createdAt: number;
+}
+
 export enum AppState {
   LOCKED = 'LOCKED',
   UNLOCKING = 'UNLOCKING',
@@ -110,7 +126,9 @@ export enum AppState {
   DECOY_REJECTED = 'DECOY_REJECTED',
   ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
   REGISTRATION = 'REGISTRATION',
-  PASSWORD_RESET = 'PASSWORD_RESET'
+  PASSWORD_RESET = 'PASSWORD_RESET',
+  GROUP_CHAT = 'GROUP_CHAT',
+  GROUP_LIST = 'GROUP_LIST'
 }
 
 export enum UserRole {

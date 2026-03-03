@@ -4,7 +4,7 @@ import { sendChatMessage, subscribeToChat, markMessagesAsRead, subscribeToUserPr
 import { Send, X, User, ArrowLeft, Image as ImageIcon, Loader2, Check, Trash2, Phone, Video, Share2, Paperclip, FileText, Download } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ChatMessage, UserProfile, Post } from '../types';
-import { compressImage } from '@/src/utils/imageUtils';
+import { compressImage, compressImageToBlob, base64ToBlob, compressForChat } from '@/src/utils/imageUtils';
 
 interface ChatWindowProps {
   userId: string;
@@ -110,44 +110,72 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
     if (!inputText.trim() && !selectedImage && !selectedFile) return;
 
     setIsSending(true);
+    
+    // Clear inputs immediately for better UX (Optimistic feel)
+    const textToSend = inputText.trim();
+    const imageToSend = selectedImage;
+    const fileToSend = selectedFile;
+    
+    setInputText('');
+    setSelectedImage(null);
+    setSelectedFile(null);
+
     try {
       let fileData = undefined;
-      let finalImageUrl = selectedImage || undefined;
+      let finalImageUrl = imageToSend || undefined;
       
-      if (selectedFile) {
-        // Upload file to Storage
-        const url = await uploadFile(selectedFile);
-        
-        if (selectedFile.type.startsWith('image/')) {
-          // If it's an image, use the Storage URL as the image URL
-          // This avoids sending large base64 strings to Firestore
-          finalImageUrl = url;
-          // We don't need fileData for images if we use imageUrl
-        } else {
-          // If it's a file, set fileData
-          fileData = {
-            url,
-            name: selectedFile.name,
-            type: selectedFile.type,
-            size: selectedFile.size
-          };
+      if (fileToSend) {
+        try {
+          let fileToUpload: File | Blob = fileToSend;
+          
+          if (fileToSend.type.startsWith('image/') && imageToSend) {
+            try {
+              // Convert the already-compressed preview image to a blob for upload
+              // This is much faster than re-compressing or uploading the original
+              fileToUpload = base64ToBlob(imageToSend);
+            } catch (err) {
+              console.warn("Base64 to Blob conversion failed, using original file:", err);
+            }
+          }
+          
+          const url = await uploadFile(fileToUpload, fileToSend.name);
+          
+          if (fileToSend.type.startsWith('image/')) {
+            finalImageUrl = url;
+          } else {
+            fileData = {
+              url,
+              name: fileToSend.name,
+              type: fileToSend.type,
+              size: fileToSend.size
+            };
+          }
+        } catch (storageError) {
+          console.error("Storage upload failed, checking for fallback:", storageError);
+          if (fileToSend.type.startsWith('image/') && imageToSend) {
+            if (imageToSend.length * 0.75 > 1024 * 1024) {
+              throw new Error("Storage upload failed and image is too large for database fallback. (Max 1MB)");
+            }
+          } else {
+            throw storageError;
+          }
         }
       }
 
       await sendChatMessage(
         userId, 
         friendId, 
-        inputText.trim(), 
+        textToSend, 
         finalImageUrl, 
         undefined, 
         fileData
       );
-      
-      setInputText('');
-      setSelectedImage(null);
-      setSelectedFile(null);
     } catch (error) {
       console.error("Send error:", error);
+      // Restore inputs if sending fails completely
+      setInputText(textToSend);
+      setSelectedImage(imageToSend);
+      setSelectedFile(fileToSend);
       alert('মেসেজ পাঠাতে সমস্যা হয়েছে। (Error: ' + (error as any).message + ')');
     } finally {
       setIsSending(false);
@@ -165,11 +193,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
       const reader = new FileReader();
       reader.onloadend = async () => {
         try {
-          const compressed = await compressImage(reader.result as string);
+          // Use more aggressive compression for faster chat experience
+          const compressed = await compressForChat(reader.result as string);
           setSelectedImage(compressed);
-          setSelectedFile(file); // Store the file for upload
+          setSelectedFile(file); 
         } catch (error) {
           console.error("Image preview error:", error);
+          // Fallback to original if compression fails
+          setSelectedImage(reader.result as string);
+          setSelectedFile(file);
         }
       };
       reader.readAsDataURL(file);

@@ -11,9 +11,10 @@ import { compressImage } from '@/src/utils/imageUtils';
 interface BlogSystemProps {
   userId: string;
   onBack: () => void;
+  onGoToChat: () => void;
 }
 
-const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
+const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack, onGoToChat }) => {
   const [message, setMessage] = useState('');
   const [headerSearchInput, setHeaderSearchInput] = useState('');
   const [headerSearchResults, setHeaderSearchResults] = useState<string[]>([]);
@@ -112,12 +113,20 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   useEffect(() => {
     if (!isFirebaseConfigured) return;
 
-    const unsubFriends = subscribeToFriends(userId, setFriends);
+    const unsubFriends = subscribeToFriends(userId, (friendList) => {
+      setFriends(friendList);
+      localStorage.setItem('mitali_friends', JSON.stringify(friendList));
+    });
     const unsubRequests = subscribeToIncomingFriendRequests(userId, setIncomingRequests);
     const unsubSentRequests = subscribeToSentFriendRequests(userId, setSentRequests);
     const unsubNotifications = subscribeToNotifications(userId, setNotifications);
     const unsubUnread = subscribeToUnreadMessageCounts(userId, setUnreadCounts);
-    const unsubProfile = subscribeToUserProfile(userId, setUserProfile);
+    const unsubProfile = subscribeToUserProfile(userId, (profile) => {
+      setUserProfile(profile);
+      if (profile?.displayName) {
+        localStorage.setItem('mitali_displayName', profile.displayName);
+      }
+    });
     const unsubAllProfiles = subscribeToAllUserProfiles(setAllProfiles);
     const unsubAllUserIds = subscribeToAllUserIds(setAllUserIds);
     const unsubAllFriendships = subscribeToAllFriendships(setAllFriendships);
@@ -688,6 +697,13 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 </span>
               )}
             </button>
+            <button 
+              onClick={onGoToChat}
+              className="h-full px-10 text-rose-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              title="বন্ধুদের সাথে গ্রুপ তৈরি করুন"
+            >
+              <MessageSquare className="w-7 h-7" />
+            </button>
             <button className="h-full px-10 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
               <Video className="w-7 h-7" />
             </button>
@@ -707,8 +723,12 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 </span>
               )}
             </button>
-            <button className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors relative text-gray-700 dark:text-gray-200">
-              <Menu className="w-5 h-5" />
+            <button 
+              onClick={onGoToChat}
+              className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors relative text-rose-500"
+              title="বন্ধুদের সাথে গ্রুপ তৈরি করুন"
+            >
+              <Users className="w-5 h-5" />
             </button>
           <button 
             onClick={() => setShowFriendsList(!showFriendsList)}
@@ -800,6 +820,16 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                   {totalUnreadCount}
                 </span>
               )}
+            </div>
+          </div>
+          <div 
+            onClick={onGoToChat}
+            className="flex items-center gap-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors"
+          >
+            <MessageSquare className="w-9 h-9 text-rose-500" />
+            <div className="flex-1 flex justify-between items-center">
+              <span className="font-semibold text-gray-800 dark:text-gray-200">বন্ধুদের সাথে গ্রুপ তৈরি করুন</span>
+              <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">Live</span>
             </div>
           </div>
           <div className="flex items-center gap-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
