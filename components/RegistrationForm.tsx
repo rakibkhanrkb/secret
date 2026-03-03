@@ -104,7 +104,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onBack }) => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">সাইন আপ</h1>
-              <p className="text-gray-600 dark:text-gray-400"> ইংরেজিতে নিজের মত করে একটি ইউজার আইডি দাও যা তোমার নাম হিসেবে ব্যবহার হবে। [ইউজার আইডি পরিবর্তনযোগ্য নয়]</p>
+              <p className="text-gray-600 dark:text-gray-400"> ইংরেজিতে নিজের মত করে একটি ইউজার আইডি দাও। [ইউজার আইডি পরিবর্তনযোগ্য নয়]</p>
             </div>
             <button onClick={onBack} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
               <X className="w-6 h-6 text-gray-500 dark:text-gray-400" />
