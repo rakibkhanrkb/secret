@@ -42,6 +42,10 @@ export interface ChatMessage {
   toUserId: string;
   content: string;
   imageUrl?: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
   sharedPostId?: string;
   read: boolean;
   createdAt: number;
@@ -59,6 +63,7 @@ export interface UserProfile {
   updatedAt: number;
   isOnline?: boolean;
   lastSeen?: number;
+  statusMessage?: string;
 }
 
 export interface Notification {

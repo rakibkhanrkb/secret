@@ -2,6 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, Timestamp, where, deleteDoc, getDocs, deleteField } from 'firebase/firestore';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Post, Reply, RegistrationRequest, FriendRequest, ChatMessage, Notification, UserProfile, UserAccount, Call, CallSignal } from '../types';
 
 // These should be replaced with actual config from user later
@@ -20,6 +21,7 @@ if (!firebaseConfig.apiKey) {
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 let messaging: Messaging | null = null;
 
 try {
@@ -296,13 +298,36 @@ export const unfriend = async (userId: string, friendId: string) => {
   }
 };
 
-export const sendChatMessage = async (fromUserId: string, toUserId: string, content: string, imageUrl?: string, sharedPostId?: string) => {
+export const uploadFile = async (file: File): Promise<string> => {
+  try {
+    const storageRef = ref(storage, `chat_files/${Date.now()}_${file.name}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    return downloadURL;
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    throw error;
+  }
+};
+
+export const sendChatMessage = async (
+  fromUserId: string, 
+  toUserId: string, 
+  content: string, 
+  imageUrl?: string, 
+  sharedPostId?: string,
+  fileData?: { url: string, name: string, type: string, size: number }
+) => {
   try {
     await addDoc(collection(db, CHAT_MESSAGES_COLLECTION), {
       fromUserId,
       toUserId,
       content,
       imageUrl: imageUrl || null,
+      fileUrl: fileData?.url || null,
+      fileName: fileData?.name || null,
+      fileType: fileData?.type || null,
+      fileSize: fileData?.size || null,
       sharedPostId: sharedPostId || null,
       read: false,
       createdAt: Date.now()

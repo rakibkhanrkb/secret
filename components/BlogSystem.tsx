@@ -44,7 +44,8 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
     bio: '',
     location: '',
     birthDate: '',
-    gender: ''
+    gender: '',
+    statusMessage: ''
   });
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [allFriendships, setAllFriendships] = useState<{ u1: string, u2: string }[]>([]);
@@ -222,10 +223,12 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
   useEffect(() => {
     if (userProfile) {
       setProfileFormData({
+        displayName: userProfile.displayName || '',
         bio: userProfile.bio || '',
         location: userProfile.location || '',
         birthDate: userProfile.birthDate || '',
-        gender: userProfile.gender || ''
+        gender: userProfile.gender || '',
+        statusMessage: userProfile.statusMessage || ''
       });
     }
   }, [userProfile]);
@@ -251,6 +254,17 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
         }
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleProfileImageChangeFromUrl = async (url: string) => {
+    setIsUpdatingProfile(true);
+    try {
+      await updateUserProfile(userId, { profileImageUrl: url });
+    } catch (error) {
+      alert('অবতার আপডেট করতে সমস্যা হয়েছে।');
+    } finally {
+      setIsUpdatingProfile(false);
     }
   };
 
@@ -753,7 +767,12 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 </div>
               )}
             </div>
-            <span className="font-semibold text-gray-800 dark:text-gray-200">{getDisplayName(userId)}</span>
+            <div className="flex flex-col">
+              <span className="font-semibold text-gray-800 dark:text-gray-200">{getDisplayName(userId)}</span>
+              {userProfile?.statusMessage && (
+                <span className="text-xs text-gray-500 dark:text-gray-400">{userProfile.statusMessage}</span>
+              )}
+            </div>
           </div>
           <div 
             onClick={() => setShowFriendsList(true)}
@@ -1413,8 +1432,13 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
 
               <div className="text-center mb-5">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">{getDisplayName(userId)}</h3>
+                {userProfile?.statusMessage && (
+                  <p className="text-[#1D4ED8] dark:text-blue-400 text-xs font-bold mt-1 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-full inline-block">
+                    {userProfile.statusMessage}
+                  </p>
+                )}
                 {userProfile?.bio && (
-                  <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm italic leading-tight">"{userProfile.bio}"</p>
+                  <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm italic leading-tight">"{userProfile.bio}"</p>
                 )}
                 <div className="mt-3 inline-block bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">
                   <p className="text-xs font-bold text-[#1D4ED8] dark:text-blue-400">
@@ -1526,6 +1550,23 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                 </div>
                 <h4 className="mt-4 font-bold text-xl dark:text-white">{getDisplayName(userId)}</h4>
                 <p className="text-gray-500 dark:text-gray-400 text-sm">আপনার প্রোফাইল তথ্য পরিবর্তন করুন</p>
+                
+                {/* Avatar Selection */}
+                <div className="mt-4 w-full">
+                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 block text-left">অবতার নির্বাচন করুন (Choose Avatar)</label>
+                  <div className="flex gap-3 overflow-x-auto pb-2 justify-center">
+                    {['Felix', 'Aneka', 'Zoe', 'Max', 'Liam', 'Ava', 'Leo', 'Mia'].map((seed) => (
+                      <div 
+                        key={seed}
+                        onClick={() => handleProfileImageChangeFromUrl(`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`)}
+                        className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-700 cursor-pointer hover:border-[#1D4ED8] dark:hover:border-blue-500 transition-all flex-shrink-0 hover:scale-110"
+                        title={seed}
+                      >
+                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`} alt={seed} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <form onSubmit={handleUpdateProfile} className="space-y-6">
@@ -1536,6 +1577,17 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack }) => {
                     value={profileFormData.displayName}
                     onChange={(e) => setProfileFormData({ ...profileFormData, displayName: e.target.value })}
                     placeholder="আপনার নাম লিখুন"
+                    className="w-full bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#1D4ED8] dark:focus:ring-blue-500 transition-all placeholder-gray-400 dark:placeholder-gray-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300">স্ট্যাটাস মেসেজ (Status)</label>
+                  <input 
+                    type="text" 
+                    value={profileFormData.statusMessage}
+                    onChange={(e) => setProfileFormData({ ...profileFormData, statusMessage: e.target.value })}
+                    placeholder="আপনার বর্তমান অবস্থা (যেমন: ব্যস্ত, কাজে আছি)"
                     className="w-full bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#1D4ED8] dark:focus:ring-blue-500 transition-all placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
