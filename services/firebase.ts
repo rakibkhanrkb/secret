@@ -305,23 +305,47 @@ export const uploadFile = (
   onProgress?: (progress: number) => void
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
+    if (!isFirebaseConfigured) {
+      reject(new Error("Firebase is not configured. Please set API keys."));
+      return;
+    }
+
     try {
-      const name = fileName || (file as File).name || `file_${Date.now()}`;
-      const storageRef = ref(storage, `chat_files/${Date.now()}_${name}`);
+      const name = fileName || (file as File).name || `file_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      const storagePath = `uploads/${Date.now()}_${name}`;
+      const storageRef = ref(storage, storagePath);
+      
+      console.log("Starting upload to:", storagePath);
+      
       const uploadTask = uploadBytesResumable(storageRef, file);
+
+      // Add a timeout of 60 seconds
+      const timeoutId = setTimeout(() => {
+        uploadTask.cancel();
+        reject(new Error("Upload timed out. Please try a smaller file or better connection."));
+      }, 60000);
 
       uploadTask.on('state_changed', 
         (snapshot) => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log(`Upload progress: ${progress.toFixed(2)}%`);
           if (onProgress) onProgress(progress);
         }, 
         (error) => {
+          clearTimeout(timeoutId);
           console.error("Error uploading file:", error);
           reject(error);
         }, 
         async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          resolve(downloadURL);
+          clearTimeout(timeoutId);
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            console.log("Upload successful, download URL obtained");
+            resolve(downloadURL);
+          } catch (err) {
+            console.error("Error getting download URL:", err);
+            reject(err);
+          }
         }
       );
     } catch (error) {

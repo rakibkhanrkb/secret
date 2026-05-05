@@ -140,6 +140,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
       isOptimistic: true // Custom flag to show loading state
     };
 
+    setIsSending(true);
     setOptimisticMessages(prev => [...prev, optimisticMsg]);
 
     try {
@@ -168,13 +169,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
               size: fileToSend.size
             };
           }
-        } catch (storageError) {
+        } catch (storageError: any) {
           console.error("Storage upload failed:", storageError);
           // Fallback to base64 ONLY if it's an image and small enough for Firestore (< 800KB)
           if (fileToSend.type.startsWith('image/') && imageToSend && imageToSend.length * 0.75 < 800 * 1024) {
             finalImageUrl = imageToSend;
           } else {
-            throw new Error("ফাইল আপলোড ব্যর্থ হয়েছে। দয়া করে আপনার ইন্টারনেট কানেকশন চেক করুন।");
+            throw new Error(storageError.message || "ফাইল আপলোড ব্যর্থ হয়েছে। দয়া করে আপনার ইন্টারনেট কানেকশন চেক করুন।");
           }
         } finally {
           setUploadProgress(null);
@@ -193,7 +194,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
       
       // Remove optimistic message after successful send
       setOptimisticMessages(prev => prev.filter(m => m.id !== tempId));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Send error:", error);
       // Mark optimistic message as failed or remove it and restore inputs
       setOptimisticMessages(prev => prev.filter(m => m.id !== tempId));
@@ -201,7 +202,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ userId, friendId, onClose }) =>
       setSelectedImage(imageToSend);
       setSelectedVideo(videoToSend);
       setSelectedFile(fileToSend);
-      alert('মেসেজ পাঠাতে সমস্যা হয়েছে। বড় ফাইল হলে ওয়াইফাই ব্যবহার করুন।');
+      alert(`মেসেজ পাঠাতে সমস্যা হয়েছে: ${error.message || 'বড় ফাইল হলে ওয়াইফাই ব্যবহার করুন।'}`);
+    } finally {
+      setIsSending(false);
     }
   };
 

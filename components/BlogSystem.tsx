@@ -203,6 +203,8 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack, onGoToChat }) =
       return;
     }
 
+    if (isSubmitting) return;
+
     // Capture values
     const messageToPost = message.trim();
     const imageToPost = selectedImage;
@@ -216,6 +218,7 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack, onGoToChat }) =
     setSelectedFile(null);
     setIsCreatingPost(false);
     setUploadProgress(0);
+    setIsSubmitting(true);
 
     // Create optimistic post
     const tempId = 'temp-' + Date.now();
@@ -247,13 +250,13 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack, onGoToChat }) =
           } else if (fileToPost.type.startsWith('video/')) {
             finalVideoUrl = url;
           }
-        } catch (storageError) {
+        } catch (storageError: any) {
           console.error("Blog storage upload failed:", storageError);
           // Fallback to base64 ONLY if small enough
           if (fileToPost.type.startsWith('image/') && imageToPost && imageToPost.length * 0.75 < 800 * 1024) {
             finalImageUrl = imageToPost;
           } else {
-            throw new Error("ফাইল আপলোড ব্যর্থ হয়েছে।");
+            throw new Error(storageError.message || "ফাইল আপলোড ব্যর্থ হয়েছে।");
           }
         }
       } else {
@@ -274,14 +277,17 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack, onGoToChat }) =
       
       // Remove optimistic post after successful creation
       setOptimisticPosts(prev => prev.filter(p => p.id !== tempId));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Post creation error:", error);
       setOptimisticPosts(prev => prev.filter(p => p.id !== tempId));
       setMessage(messageToPost);
       setSelectedImage(imageToPost);
       setSelectedVideo(videoToPost);
       setSelectedFile(fileToPost);
-      alert('পোস্ট করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+      setUploadProgress(null);
+      alert(`পোস্ট করতে সমস্যা হয়েছে: ${error.message || 'আবার চেষ্টা করুন।'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -999,29 +1005,37 @@ const BlogSystem: React.FC<BlogSystemProps> = ({ userId, onBack, onGoToChat }) =
                     </div>
                   )}
                   {/* Post Header */}
-                  <div className="p-4 flex justify-between items-start">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 dark:border-gray-700">
-                        {allProfiles[post.userId]?.profileImageUrl ? (
-                          <img src={allProfiles[post.userId].profileImageUrl} alt={post.userId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        ) : (
-                          <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                            <User className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                    <div className="p-4 flex justify-between items-start">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 dark:border-gray-700">
+                          {allProfiles[post.userId]?.profileImageUrl ? (
+                            <img src={allProfiles[post.userId].profileImageUrl} alt={post.userId} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                              <User className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <h4 
+                            onClick={() => setViewingProfileId(post.userId)}
+                            className="font-bold text-gray-900 dark:text-white hover:underline cursor-pointer"
+                          >
+                            {getDisplayName(post.userId)}
+                          </h4>
+                          <div className="flex flex-col">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                              {post.isOptimistic ? 'জাস্ট নাও' : formatDistanceToNow(post.createdAt)} ago • <Users className="w-3 h-3" />
+                            </p>
+                            {post.isOptimistic && (
+                              <p className="text-[10px] text-blue-500 font-bold animate-pulse flex items-center gap-1 mt-0.5">
+                                <span className="w-1 h-1 bg-blue-500 rounded-full animate-ping"></span>
+                                পোস্ট হচ্ছে... ({uploadProgress !== null ? `${Math.round(uploadProgress)}%` : 'অপেক্ষা করুন'})
+                              </p>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
-                      <div>
-                        <h4 
-                          onClick={() => setViewingProfileId(post.userId)}
-                          className="font-bold text-gray-900 dark:text-white hover:underline cursor-pointer"
-                        >
-                          {getDisplayName(post.userId)}
-                        </h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                          {formatDistanceToNow(post.createdAt)} ago • <Users className="w-3 h-3" />
-                        </p>
-                      </div>
-                    </div>
                     <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
                       <MoreHorizontal className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                     </button>
